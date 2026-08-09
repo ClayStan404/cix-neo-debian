@@ -1,0 +1,21 @@
+Source: cix-vpu-driver
+Section: kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-dkms,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Testsuite: autopkgtest-pkg-dkms
+
+Package: cix-vpu-driver-dkms
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+ cix-vpu-firmware,
+Description: CIX VPU kernel driver source for DKMS
+ This package installs the CIX VPU kernel driver source, its userspace control
+ header, and DKMS metadata. DKMS compiles the module for each compatible CIX
+ kernel installed on the target system.

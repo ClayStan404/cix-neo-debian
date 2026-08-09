@@ -1,0 +1,5 @@
+debian/package-files/90-cix-grub-config.cfg etc/default/grub.d
+debian/package-files/09_cix_grub_config etc/grub.d
+debian/package-files/cix-grub-config-refresh usr/libexec
+debian/package-files/kernel/postinst.d/cix-grub-config etc/kernel/postinst.d
+debian/package-files/kernel/postrm.d/cix-grub-config etc/kernel/postrm.d

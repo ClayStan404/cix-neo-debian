@@ -1,0 +1,5 @@
+cix-grub-config (1.1.4) trixie; urgency=medium
+
+  * Package the CIX GRUB policy as a native Debian source package.
+
+ -- Clay Stan <claystan97@gmail.com>  Sun, 09 Aug 2026 18:00:00 +0800

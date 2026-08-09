@@ -1,0 +1,137 @@
+#!/bin/sh
+set -e
+
+# grub-mkconfig helper script.
+# Copyright (C) 2006-2010 Free Software Foundation, Inc.
+# Copyright (C) 2026 Cix Technology Group Co., Ltd.
+#
+# This program is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+
+# shellcheck disable=SC2034
+prefix="/usr"
+# shellcheck disable=SC2034
+exec_prefix="/usr"
+datarootdir="/usr/share"
+
+if [ -z "${pkgdatadir:-}" ]; then
+    pkgdatadir="${datarootdir}/grub"
+fi
+
+# shellcheck disable=SC1091
+. "$pkgdatadir/grub-mkconfig_lib"
+
+CLASS="--class cix --class gnu-linux --class gnu --class os"
+CIX_GENERIC_KERNEL_GLOB="vmlinuz-*-generic"
+CIX_GRUB_TARGET_CMDLINE_COMMON="acpi=force"
+
+case ${GRUB_DEVICE} in
+    /dev/loop/*|/dev/loop[0-9])
+        GRUB_DEVICE=$(losetup "${GRUB_DEVICE}" | sed -e "s/^[^(]*(\([^)]\+\)).*/\1/")
+    ;;
+esac
+
+: "${GRUB_DISABLE_LINUX_PARTUUID:=true}"
+
+if { [ -z "${GRUB_DEVICE_UUID}" ] && [ -z "${GRUB_DEVICE_PARTUUID}" ]; } \
+    || { [ "${GRUB_DISABLE_LINUX_UUID}" = "true" ] && [ "${GRUB_DISABLE_LINUX_PARTUUID}" = "true" ]; } \
+    || { ! test -e "/dev/disk/by-uuid/${GRUB_DEVICE_UUID}" && ! test -e "/dev/disk/by-partuuid/${GRUB_DEVICE_PARTUUID}"; } \
+    || { test -e "${GRUB_DEVICE}" && uses_abstraction "${GRUB_DEVICE}" lvm; }; then
+    LINUX_ROOT_DEVICE=${GRUB_DEVICE}
+elif [ -z "${GRUB_DEVICE_UUID}" ] || [ "${GRUB_DISABLE_LINUX_UUID}" = "true" ]; then
+    LINUX_ROOT_DEVICE=PARTUUID=${GRUB_DEVICE_PARTUUID}
+else
+    LINUX_ROOT_DEVICE=UUID=${GRUB_DEVICE_UUID}
+fi
+
+case "${GRUB_FS}" in
+    btrfs)
+        rootsubvol=$(make_system_path_relative_to_its_root /)
+        rootsubvol="${rootsubvol#/}"
+        if [ -n "${rootsubvol}" ]; then
+            GRUB_CMDLINE_LINUX="rootflags=subvol=${rootsubvol} ${GRUB_CMDLINE_LINUX}"
+        fi
+    ;;
+    zfs)
+        # shellcheck disable=SC2154
+        rpool=$("${grub_probe}" --device "${GRUB_DEVICE}" --target=fs_label 2>/dev/null || zdb -l "${GRUB_DEVICE}" | awk -F \' '/ name/ { print $2 }')
+        bootfs="$(make_system_path_relative_to_its_root / | sed -e "s,@$,,")"
+        LINUX_ROOT_DEVICE="ZFS=${rpool}${bootfs%/}"
+    ;;
+esac
+
+target_kernel=$(
+    find /boot -maxdepth 1 -type f -name "${CIX_GENERIC_KERNEL_GLOB}" -printf '%p\n' 2>/dev/null \
+        | awk '$0 !~ /-rc[0-9]+-/' \
+        | sort -V \
+        | tail -n 1
+)
+
+if [ -z "${target_kernel}" ]; then
+    exit 0
+fi
+
+basename=$(basename "${target_kernel}")
+dirname=$(dirname "${target_kernel}")
+rel_dirname=$(make_system_path_relative_to_its_root "${dirname}")
+version="${basename#*-}"
+alt_version="${version%.old}"
+linux_root_device_thisversion="${LINUX_ROOT_DEVICE}"
+
+initrd=
+for i in "initrd.img-${version}" "initrd-${version}.img" \
+         "initrd-${alt_version}.img.old" "initrd-${version}.gz" \
+         "initrd-${alt_version}.gz.old" "initrd-${version}" \
+         "initramfs-${version}.img" "initramfs-${alt_version}.img.old" \
+         "initrd.img-${alt_version}" "initrd-${alt_version}.img" \
+         "initrd-${alt_version}" "initramfs-${alt_version}.img"; do
+    if test -e "${dirname}/${i}" ; then
+        initrd="${i}"
+        break
+    fi
+done
+
+if test -z "${initrd}" ; then
+    if [ -z "${GRUB_DEVICE_PARTUUID}" ] || [ "${GRUB_DISABLE_LINUX_PARTUUID}" = "true" ]; then
+        linux_root_device_thisversion=${GRUB_DEVICE}
+    else
+        linux_root_device_thisversion=PARTUUID=${GRUB_DEVICE_PARTUUID}
+    fi
+fi
+
+boot_grub_device="${GRUB_DEVICE}"
+if [ "${dirname}" != / ] && [ -n "${GRUB_DEVICE_BOOT:-}" ]; then
+    boot_grub_device="${GRUB_DEVICE_BOOT}"
+fi
+
+prepare_cache="$(prepare_grub_to_access_device "${boot_grub_device}" | grub_add_tab)"
+boot_device_id="$(grub_get_device_id "${GRUB_DEVICE}")"
+title="CIX Linux ${version}"
+
+# Order-sensitive: *-cix-build-generic must match before *-generic.
+case "${basename}" in
+    *-cix-build-generic)
+        cix_grub_target_cmdline_extra="${CIX_GRUB_TARGET_CMDLINE_COMMON}"
+    ;;
+    *-generic)
+        cix_grub_target_cmdline_extra="${CIX_GRUB_TARGET_CMDLINE_COMMON} clk_ignore_unused"
+    ;;
+    *)
+        cix_grub_target_cmdline_extra="${CIX_GRUB_TARGET_CMDLINE_COMMON}"
+    ;;
+esac
+
+linux_args="${GRUB_CMDLINE_LINUX} ${GRUB_CMDLINE_LINUX_DEFAULT} ${cix_grub_target_cmdline_extra}"
+linux_args="$(printf '%s\n' "${linux_args}" | awk '{$1=$1; print}')"
+
+echo "menuentry '$(echo "${title}" | grub_quote)' ${CLASS} \$menuentry_id_option 'cix-${version}-${boot_device_id}' {"
+save_default_entry | grub_add_tab
+printf '%s\n' "${prepare_cache}"
+printf '\tlinux\t%s/%s root=%s ro %s\n' \
+    "${rel_dirname}" "${basename}" "${linux_root_device_thisversion}" "${linux_args}"
+if test -n "${initrd}" ; then
+    printf '\tinitrd\t%s/%s\n' "${rel_dirname}" "${initrd}"
+fi
+echo "}"

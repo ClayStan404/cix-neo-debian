@@ -1,0 +1,3 @@
+Makefile usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+armchina-npu usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+version.mk usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}

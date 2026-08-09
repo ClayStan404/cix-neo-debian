@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+GRUB_DEFAULT_FILE="/etc/default/grub"
+
+if [ ! -f "${GRUB_DEFAULT_FILE}" ]; then
+    echo "WARN: ${GRUB_DEFAULT_FILE} not found, skipping GRUB refresh." >&2
+    exit 1
+fi
+
+if command -v update-grub >/dev/null 2>&1; then
+    exec update-grub
+fi
+
+if command -v grub-mkconfig >/dev/null 2>&1; then
+    exec grub-mkconfig -o /boot/grub/grub.cfg
+fi
+
+echo "WARN: neither update-grub nor grub-mkconfig was found." >&2
+exit 1

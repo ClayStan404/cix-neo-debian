@@ -1,0 +1,17 @@
+Source: cix-grub-config
+Section: admin
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-grub-config
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ grub2-common,
+Description: CIX GRUB boot configuration
+ This package installs the CIX GRUB menu generator and refresh hooks used by
+ CIX ARM64 systems.

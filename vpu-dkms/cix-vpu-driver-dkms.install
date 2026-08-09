@@ -1,0 +1,3 @@
+Makefile usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+driver usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+driver/linux/mvx-v4l2-controls.h usr/include

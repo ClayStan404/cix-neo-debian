@@ -1,0 +1,23 @@
+#!/bin/sh
+set -e
+
+regenerate_grub_menu() {
+    if command -v update-grub >/dev/null 2>&1; then
+        update-grub || true
+        return 0
+    fi
+
+    if command -v grub-mkconfig >/dev/null 2>&1; then
+        grub-mkconfig -o /boot/grub/grub.cfg || true
+    fi
+}
+
+case "$1" in
+    remove|purge)
+        regenerate_grub_menu
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

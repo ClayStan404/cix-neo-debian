@@ -1,0 +1,5 @@
+cix-vpu-driver (1.0.1-1) trixie; urgency=medium
+
+  * Initial CIX Neo DKMS source package.
+
+ -- Clay Stan <claystan97@gmail.com>  Sun, 09 Aug 2026 18:00:00 +0800
