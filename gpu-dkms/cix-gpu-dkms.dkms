@@ -1,1 +1,25 @@
-dkms.conf
+PACKAGE_NAME="cix-gpu-kmd"
+PACKAGE_VERSION="#MODULE_VERSION#"
+
+# Always use the kernel source directory selected by DKMS. The driver must not
+# fall back to the running host kernel when a different CIX kernel is targeted.
+MAKE[0]="make KDIR=${kernel_source_dir} all"
+
+BUILT_MODULE_NAME[0]="mali_kbase"
+BUILT_MODULE_LOCATION[0]="drivers/gpu/arm/midgard/"
+DEST_MODULE_LOCATION[0]="/updates"
+
+BUILT_MODULE_NAME[1]="protected_memory_allocator"
+BUILT_MODULE_LOCATION[1]="drivers/base/arm/protected_memory_allocator/"
+DEST_MODULE_LOCATION[1]="/updates"
+
+BUILT_MODULE_NAME[2]="memory_group_manager"
+BUILT_MODULE_LOCATION[2]="drivers/base/arm/memory_group_manager/"
+DEST_MODULE_LOCATION[2]="/updates"
+
+# This driver relies on CIX kernel interfaces and is not compatible with a
+# generic upstream kernel.
+BUILD_EXCLUSIVE_ARCH="aarch64"
+BUILD_EXCLUSIVE_CONFIG="CONFIG_ARCH_CIX"
+
+AUTOINSTALL="yes"

@@ -18,6 +18,10 @@ The current external packaging metadata is:
 - `gpu-dkms/`: overlaid as `debian/` onto a temporary copy of the GPU source
   before the source package is passed to `sbuild`.
 
+The GPU package owns its installed `dkms.conf`. It always builds against the
+kernel source directory selected by DKMS and restricts builds to ARM64 kernels
+with `CONFIG_ARCH_CIX`. Generic upstream kernels are intentionally unsupported.
+
 Package build relationships belong in the source stanza `Build-Depends`,
 `Build-Depends-Arch`, and `Build-Depends-Indep` fields. Build scripts must not
 declare or invoke dependencies on other module build scripts.
