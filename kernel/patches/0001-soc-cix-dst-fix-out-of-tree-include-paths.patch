@@ -1,0 +1,22 @@
+Description: Fix CIX DST include paths for out-of-tree kernel builds
+ The dynamic search starts in the object tree when Kbuild uses O=, so it
+ cannot discover source-owned include directories. List the two source include
+ directories explicitly through srctree.
+Forwarded: no
+Last-Update: 2026-08-09
+---
+diff --git a/drivers/soc/cix/cix_dst/Makefile b/drivers/soc/cix/cix_dst/Makefile
+index 666c29cc388c..5120c371d65a 100644
+--- a/drivers/soc/cix/cix_dst/Makefile
++++ b/drivers/soc/cix/cix_dst/Makefile
+@@ -5,8 +5,8 @@
+ # Uses Makefile.inc files to aggregate objects from subdirectories
+ #
+ 
+-INCLUDE_DIRS := $(shell find $(src) -name "Makefile*" -exec dirname {} \; 2>/dev/null | sort -u)
+-ccflags-y += $(foreach d,$(INCLUDE_DIRS),$(if $(wildcard $(d)/include/.),-I$(d)/include,))
++ccflags-y += -I$(srctree)/$(src)/include
++ccflags-y += -I$(srctree)/$(src)/bbox/include
+ 
+ obj-$(CONFIG_CIX_DST) += cix_dst.o
+ 

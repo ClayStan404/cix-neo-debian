@@ -1,0 +1,19 @@
+Description: Check fwnode reference count as an integer
+ fwnode_count_reference_with_args returns int, not an error pointer. Use a
+ negative integer check so the code also compiles with GCC 14.
+Forwarded: no
+Last-Update: 2026-08-09
+---
+diff --git a/drivers/regulator/fwnode_regulator.c b/drivers/regulator/fwnode_regulator.c
+index 6a5c228835dc..c7b5c50832bb 100644
+--- a/drivers/regulator/fwnode_regulator.c
++++ b/drivers/regulator/fwnode_regulator.c
+@@ -93,7 +93,7 @@ static int fwnode_get_regulation_constraints(struct device *dev,
+ 
+ 	n_phandles = fwnode_count_reference_with_args(np, "regulator-coupled-with",
+ 						NULL);
+-	if (IS_ERR(n_phandles))
++	if (n_phandles < 0)
+ 		n_phandles = 0;
+ 
+ 	n_phandles = max(n_phandles, 0);

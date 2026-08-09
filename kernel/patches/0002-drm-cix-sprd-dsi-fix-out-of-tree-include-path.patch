@@ -1,0 +1,16 @@
+Description: Fix SPRD DSI parent include path for out-of-tree builds
+ Resolve the source directory explicitly so vrr_notifier.h can be found when
+ the kernel object tree is separate from the source tree.
+Forwarded: no
+Last-Update: 2026-08-09
+---
+diff --git a/drivers/gpu/drm/cix/sprd-dsi/Makefile b/drivers/gpu/drm/cix/sprd-dsi/Makefile
+index 7ef5d63dc1c1..f40c8a07213a 100644
+--- a/drivers/gpu/drm/cix/sprd-dsi/Makefile
++++ b/drivers/gpu/drm/cix/sprd-dsi/Makefile
+@@ -1,4 +1,4 @@
+-subdir-ccflags-y += -I$(src) -I$(src)/..
++subdir-ccflags-y += -I$(srctree)/$(src) -I$(srctree)/$(src)/..
+ 
+ obj-$(CONFIG_DRM_SPRD_DSI_DPHY) += sprd_dphy.o
+ sprd_dphy-y := sprd_dphy_main.o disp_lib.o sprd_dphy_api.o sprd_dsi_ctrl_ppi.o \

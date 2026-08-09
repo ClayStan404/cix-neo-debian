@@ -8,8 +8,13 @@ The Linux kernel uses its own `scripts/package/mkdebian` implementation through
 the `bindeb-pkg` make target. No kernel configuration or duplicate kernel
 packaging metadata is stored here.
 
+Temporary downstream kernel fixes live in `kernel/patches/` and are applied in
+`series` order to a disposable Git worktree. Each patch must be removed when
+the equivalent fix reaches the manifest-managed kernel branch.
+
 The current external packaging metadata is:
 
+- `kernel/patches/`: temporary downstream fixes required by the native build;
 - `gpu-dkms/`: overlaid as `debian/` onto a temporary copy of the GPU source
   before the source package is passed to `sbuild`.
 

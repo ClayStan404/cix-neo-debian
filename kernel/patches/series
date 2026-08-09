@@ -1,0 +1,4 @@
+0001-soc-cix-dst-fix-out-of-tree-include-paths.patch
+0002-drm-cix-sprd-dsi-fix-out-of-tree-include-path.patch
+0003-regulator-fix-integer-error-check.patch
+0004-media-cix-isp-fix-out-of-tree-include-paths.patch

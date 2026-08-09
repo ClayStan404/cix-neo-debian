@@ -1,0 +1,35 @@
+Description: Fix CIX ISP include paths for out-of-tree builds
+ The cix_isp composite module uses paths relative to $(src). With a separate
+ kernel output directory, those paths resolve under the output tree and the
+ compiler cannot find headers kept in the source tree. Prefix the paths with
+ srctree so the driver also builds with O=.
+Forwarded: no
+Last-Update: 2026-08-09
+---
+diff --git a/drivers/media/platform/cix/cix_isp/Makefile b/drivers/media/platform/cix/cix_isp/Makefile
+index 354c7e66d9a7..36ae663452ad 100755
+--- a/drivers/media/platform/cix/cix_isp/Makefile
++++ b/drivers/media/platform/cix/cix_isp/Makefile
+@@ -1,14 +1,14 @@
+ # SPDX-License-Identifier: GPL-2.0
+ # In-tree (CONFIG_CAMERA_ARMCB) and out-of-tree / DKMS (armcb_isp.ko).
+ 
+-ccflags-y += -I$(src)/platform
+-ccflags-y += -I$(src)/common
+-ccflags-y += -I$(src)/common/isp_hw_if
+-ccflags-y += -I$(src)/sensor
+-ccflags-y += -I$(src)/isp
+-ccflags-y += -I$(src)/platform/logger
+-ccflags-y += -I$(src)/platform/hdmi
+-ccflags-y += -I$(src)/cixvihw
++ccflags-y += -I$(srctree)/$(src)/platform
++ccflags-y += -I$(srctree)/$(src)/common
++ccflags-y += -I$(srctree)/$(src)/common/isp_hw_if
++ccflags-y += -I$(srctree)/$(src)/sensor
++ccflags-y += -I$(srctree)/$(src)/isp
++ccflags-y += -I$(srctree)/$(src)/platform/logger
++ccflags-y += -I$(srctree)/$(src)/platform/hdmi
++ccflags-y += -I$(srctree)/$(src)/cixvihw
+ ifneq ($(wildcard $(srctree)/drivers/misc),)
+ ccflags-y += -I$(srctree)/drivers/misc
+ endif
