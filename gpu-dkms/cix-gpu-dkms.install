@@ -1,0 +1,5 @@
+Makefile usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+Mconfig usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+gpu.mk usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+drivers usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+include usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}

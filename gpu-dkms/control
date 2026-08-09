@@ -1,0 +1,19 @@
+Source: cix-gpu-kmd
+Section: kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-dkms,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Testsuite: autopkgtest-pkg-dkms
+
+Package: cix-gpu-dkms
+Architecture: all
+Depends:
+ ${misc:Depends},
+Description: CIX GPU kernel driver source for DKMS
+ This package installs the CIX GPU kernel driver source and DKMS metadata.
+ DKMS compiles the modules for each compatible kernel installed on the target
+ system.
