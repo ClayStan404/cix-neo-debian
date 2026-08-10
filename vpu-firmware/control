@@ -1,0 +1,18 @@
+Source: cix-vpu-firmware
+Section: non-free-firmware/kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://developer.cixtech.com/
+
+Package: cix-vpu-firmware
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+Description: firmware binaries for the CIX VPU driver
+ This package installs the proprietary firmware binaries required by the CIX
+ VPU kernel driver for video decoding and encoding.

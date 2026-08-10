@@ -18,6 +18,8 @@ The current packaging metadata is:
 - `gpu-dkms/`: overlaid as `debian/` onto a temporary copy of the GPU source
   before the source package is passed to `sbuild`;
 - `vpu-dkms/`: external Debian metadata for `cix-vpu-driver-dkms`;
+- `vpu-firmware/`: external Debian metadata for the proprietary
+  `cix-vpu-firmware` payload;
 - `npu-dkms/`: external Debian metadata for `cix-npu-driver-dkms`;
 - `grub-config/`: native Debian source for `cix-grub-config`.
 
@@ -26,9 +28,9 @@ kernel source directory selected by DKMS and restricts builds to ARM64 kernels
 with `CONFIG_ARCH_CIX`. Generic upstream kernels are intentionally unsupported.
 
 The VPU package declares its real runtime dependency on `cix-vpu-firmware`.
-Firmware is not fabricated from the open-source VPU repository; its package
-source must be added separately before the driver set is installable from a
-self-contained CIX archive.
+The firmware payload comes from `cix_proprietary/cix_proprietary`, not from the
+open-source VPU driver repository. Only the `.fwb` files staged under
+`cix-vpu-umd/usr/lib/firmware` are included in the firmware source package.
 
 Package build relationships belong in the source stanza `Build-Depends`,
 `Build-Depends-Arch`, and `Build-Depends-Indep` fields. Build scripts must not

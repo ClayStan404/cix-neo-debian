@@ -1,0 +1,5 @@
+cix-vpu-firmware (1.0.1-1) trixie; urgency=medium
+
+  * Initial CIX Neo firmware package.
+
+ -- Clay Stan <claystan97@gmail.com>  Mon, 10 Aug 2026 10:06:00 +0800
