@@ -1,0 +1,17 @@
+Source: cix-audio-dsp
+Section: non-free/libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-audio-dsp
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX audio DSP firmware and userspace libraries
+ This package installs the CIX audio DSP firmware, codec libraries, wrapper
+ library, and development header.

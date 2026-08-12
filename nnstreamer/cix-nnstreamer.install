@@ -1,0 +1,6 @@
+etc/nnstreamer.ini
+usr/lib/python3/dist-packages/nnstreamer_python.so
+usr/share/cix/bin
+usr/share/cix/lib/*.so
+usr/share/cix/lib/gstreamer-1.0
+usr/share/cix/lib/nnstreamer

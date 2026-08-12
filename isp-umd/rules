@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_installsystemd:
+	dh_installsystemd --name=isp-daemon
+
+override_dh_install:
+	dh_install
+	patchelf --remove-rpath debian/cix-isp-umd/usr/share/cix/bin/isp_app
+	patchelf --remove-rpath debian/cix-isp-umd/usr/share/cix/bin/params_parser
+	find debian/cix-isp-umd/usr/share/cix/bin -type f \
+		\( -name '*.IMG' -o -name '*.cal' -o -name '*.py' -o \
+		-name '*.tun' -o -name '*.txt' \) \
+		-exec chmod 0644 -- {} +
+	chmod 0644 debian/cix-isp-umd/usr/share/cix/lib/libpcap.a
+
+override_dh_dwz override_dh_strip:
+
+override_dh_shlibdeps:
+	dh_shlibdeps -Xisp_app

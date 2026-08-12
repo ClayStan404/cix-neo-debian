@@ -1,0 +1,70 @@
+From: CIX Neo Build System <noreply@cixtech.com>
+Date: Wed, 12 Aug 2026 09:30:00 +0800
+Subject: build: inherit the DKMS make jobserver
+
+Use GNU make's recursive make variable and remove independent -j options from
+the QCA sub-builds. A bare -j, produced when PARALLELISM is unset, means
+unlimited jobs and can exhaust all host memory. Inheriting the outer DKMS
+jobserver keeps the requested nproc-wide parallelism across the complete build.
+---
+ AIO/build/Makefile   |  2 +-
+ AIO/drivers/Makefile | 18 +++++++++---------
+ 2 files changed, 10 insertions(+), 10 deletions(-)
+
+--- a/AIO/build/Makefile
++++ b/AIO/build/Makefile
+@@ -26,4 +26,4 @@
+ #################################################################################################################################
+-export MAKEARCH=make ARCH=$(KERNELARCH) CROSS_COMPILE=$(TOOLPREFIX)
++export MAKEARCH=$(MAKE) ARCH=$(KERNELARCH) CROSS_COMPILE=$(TOOLPREFIX)
+ 
+ export INSTALL_ROOT=${ATH_TOPDIR}/rootfs-$(BOARD_TYPE).build
+--- a/AIO/drivers/Makefile
++++ b/AIO/drivers/Makefile
+@@ -331,37 +331,37 @@
+ qcacld_3_2_build:
+ ifeq ($(CONFIG_CORE_TECH_DEPEND),y)
+-	${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers KBUILD_EXTRA_SYMBOLS=${CORE_TECH_TOPDIR}/Module.symvers modules  $(KBUILD_OPTIONS_CLD_3_2) -j${PARALLELISM}
++	+${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers KBUILD_EXTRA_SYMBOLS=${CORE_TECH_TOPDIR}/Module.symvers modules  $(KBUILD_OPTIONS_CLD_3_2)
+ else
+-	${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers modules  $(KBUILD_OPTIONS_CLD_3_2) -j${PARALLELISM}
++	+${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers modules  $(KBUILD_OPTIONS_CLD_3_2)
+ endif
+ 
+ qcacld_3_2_clean:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) $(KBUILD_OPTIONS_CLD_3_2) clean -j${PARALLELISM}
++	+${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) $(KBUILD_OPTIONS_CLD_3_2) clean
+ 
+ core_tech_modules_build:
+-	${MAKEARCH} -C $(CORE_TECH_TOPDIR) $(KBUILD_OPTIONS_CORE_TECH) -j${PARALLELISM}
++	+${MAKEARCH} -C $(CORE_TECH_TOPDIR) $(KBUILD_OPTIONS_CORE_TECH)
+ 
+ core_tech_modules_clean:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(CORE_TECH_TOPDIR) clean -j${PARALLELISM}
++	+${MAKEARCH} -C $(KERNELPATH) M=$(CORE_TECH_TOPDIR) clean
+ 
+ wlan_single_ko_build:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers modules $(KBUILD_OPTIONS_CLD_3_2) $(KBUILD_OPTIONS_CORE_TECH) -j${PARALLELISM}
++	+${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) KBUILD_EXTRA_SYMBOLS=$(MODULE_SYMBOL_DIR)/Module.symvers modules $(KBUILD_OPTIONS_CLD_3_2) $(KBUILD_OPTIONS_CORE_TECH)
+ 
+ wlan_single_ko_clean:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) $(KBUILD_OPTIONS_CLD_3_2) $(KBUILD_OPTIONS_CORE_TECH) clean  -j4
++	+${MAKEARCH} -C $(KERNELPATH) M=$(ATH_QCACLD_CLD_3_2_TOPDIR) $(KBUILD_OPTIONS_CLD_3_2) $(KBUILD_OPTIONS_CORE_TECH) clean
+ 
+ ifeq ($(BUILD_EMESH_STACK), y)
+ qcawifi_son_build:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(QCA_WIFI_SON_DIR) KBUILD_EXTRA_SYMBOLS=$(ATH_QCACLD_CLD_3_2_TOPDIR)/Module.symvers $(KBUILD_OPTIONS_SON) -j4
++	+${MAKEARCH} -C $(KERNELPATH) M=$(QCA_WIFI_SON_DIR) KBUILD_EXTRA_SYMBOLS=$(ATH_QCACLD_CLD_3_2_TOPDIR)/Module.symvers $(KBUILD_OPTIONS_SON)
+ else
+ qcawifi_son_build:
+ 	echo "Easymesh stack building not enabled"
+ endif
+ 
+ ifeq ($(BUILD_EMESH_STACK), y)
+ qcawifi_son_clean:
+-	${MAKEARCH} -C $(KERNELPATH) M=$(QCA_WIFI_SON_DIR) $(KBUILD_OPTIONS_SON) clean -j4
++	+${MAKEARCH} -C $(KERNELPATH) M=$(QCA_WIFI_SON_DIR) $(KBUILD_OPTIONS_SON) clean
+ else
+ qcawifi_son_clean:
+ 	echo "Easymesh stack building not enabled"
+ endif

@@ -1,0 +1,79 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export PKG_CONFIG_PATH = /usr/lib/aarch64-linux-gnu/cix/pkgconfig
+
+build_dir = debian/build
+private_libdir = /usr/lib/aarch64-linux-gnu/cix
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p $(build_dir)
+	cd $(build_dir) && ../../configure \
+		--prefix=/usr/share/cix \
+		--bindir=/usr/libexec/cix \
+		--datadir=/usr/share/cix/share/ffmpeg \
+		--incdir=/usr/share/cix/include \
+		--libdir=$(private_libdir) \
+		--shlibdir=$(private_libdir) \
+		--cc='ccache clang' \
+		--toolchain=hardened \
+		--disable-autodetect \
+		--disable-doc \
+		--disable-static \
+		--disable-stripping \
+		--extra-cflags=-I/usr/share/cix/kernel-uapi/include \
+		--enable-bzlib \
+		--enable-gnutls \
+		--enable-gpl \
+		--enable-libaom \
+		--enable-libass \
+		--enable-libdav1d \
+		--enable-libdrm \
+		--enable-libfontconfig \
+		--enable-libfreetype \
+		--enable-libfribidi \
+		--enable-libmp3lame \
+		--enable-libopenjpeg \
+		--enable-libopus \
+		--enable-libvorbis \
+		--enable-libvpx \
+		--enable-libwebp \
+		--enable-libx264 \
+		--enable-libx265 \
+		--enable-libxml2 \
+		--enable-libzimg \
+		--enable-lzma \
+		--enable-pic \
+		--enable-pthreads \
+		--enable-shared \
+		--enable-vaapi \
+		--enable-v4l2-m2m \
+		--enable-zlib
+
+override_dh_auto_build:
+	dh_auto_build --sourcedirectory=$(build_dir)
+
+override_dh_auto_test:
+	LD_LIBRARY_PATH=$(CURDIR)/$(build_dir)/libavcodec:$(CURDIR)/$(build_dir)/libavdevice:$(CURDIR)/$(build_dir)/libavfilter:$(CURDIR)/$(build_dir)/libavformat:$(CURDIR)/$(build_dir)/libavutil:$(CURDIR)/$(build_dir)/libpostproc:$(CURDIR)/$(build_dir)/libswresample:$(CURDIR)/$(build_dir)/libswscale:$(private_libdir) \
+		$(build_dir)/ffmpeg -version
+
+override_dh_auto_install:
+	dh_auto_install --sourcedirectory=$(build_dir)
+
+override_dh_auto_clean:
+	rm -rf $(build_dir)
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+# dwz 0.15 cannot process the .debug_addr sections emitted by Clang 19.
+override_dh_dwz:
+
+override_dh_makeshlibs:
+	dh_makeshlibs --no-scripts
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/cix-libavcodec61$(private_libdir):$(CURDIR)/debian/cix-libavdevice61$(private_libdir):$(CURDIR)/debian/cix-libavfilter10$(private_libdir):$(CURDIR)/debian/cix-libavformat61$(private_libdir):$(CURDIR)/debian/cix-libavutil59$(private_libdir):$(CURDIR)/debian/cix-libpostproc58$(private_libdir):$(CURDIR)/debian/cix-libswresample5$(private_libdir):$(CURDIR)/debian/cix-libswscale8$(private_libdir):$(private_libdir)

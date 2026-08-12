@@ -1,0 +1,19 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX device firmware
+Source: ssh://git@gitmirror.cixcomputing.com/cix_proprietary/cix_proprietary
+
+Files: firmware/*
+Copyright: 2024-2026 Cix Technology Group Co., Ltd.
+License: CIX-Proprietary
+ These firmware binaries are proprietary software. Redistribution and use are
+ subject to the applicable agreement with Cix Technology Group Co., Ltd.
+
+Files: debian/*
+Copyright: 2026 Cix Technology Group Co., Ltd.
+License: GPL-2+
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU General Public License version 2 or, at your option, any
+ later version.
+ .
+ On Debian systems, the complete text of the GNU General Public License version
+ 2 can be found in /usr/share/common-licenses/GPL-2.

@@ -1,0 +1,11 @@
+prefix=/usr
+libdir=${prefix}/lib/aarch64-linux-gnu
+includedir=${prefix}/include/cme
+
+Name: libcme
+Description: CIX Media Engine hardware-accelerated image processing library
+Version: 1.1.0
+Requires.private: libdrm_cix, OpenCL
+Libs: -L${libdir} -lcme
+Libs.private: -lyuv
+Cflags: -I${includedir}

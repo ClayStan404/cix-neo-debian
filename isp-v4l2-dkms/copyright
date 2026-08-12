@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX ISP V4L2 driver
+Source: ssh://git@gitmirror.cixcomputing.com/cix_opensource/isp_driver
+
+Files: *
+Copyright: 2021 The Linux Foundation
+           2024 CIX Semiconductor
+License: GPL-2
+ This program is free software; you can redistribute it and/or modify it under
+ the terms of the GNU General Public License version 2 as published by the Free
+ Software Foundation.
+ .
+ On Debian systems, the complete text of the GNU General Public License version
+ 2 can be found in /usr/share/common-licenses/GPL-2.

@@ -1,0 +1,56 @@
+Source: cix-mesa
+Section: libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ bison,
+ debhelper-compat (= 13),
+ flex,
+ libdrm-dev (>= 2.4.109),
+ libelf-dev,
+ libexpat1-dev,
+ libglvnd-core-dev (>= 1.3.2),
+ libudev-dev,
+ libunwind-dev,
+ libvulkan-dev,
+ libwayland-dev,
+ libwayland-egl-backend-dev,
+ libx11-dev,
+ libx11-xcb-dev,
+ libxcb-dri2-0-dev,
+ libxcb-dri3-dev,
+ libxcb-glx0-dev,
+ libxcb-present-dev,
+ libxcb-randr0-dev,
+ libxcb-shm0-dev,
+ libxcb-sync-dev,
+ libxcb-xfixes0-dev,
+ libxext-dev,
+ libxfixes-dev,
+ libxrandr-dev,
+ libxshmfence-dev,
+ libxxf86vm-dev,
+ libzstd-dev,
+ meson (>= 1.4.0),
+ pkgconf,
+ python3:any,
+ python3-mako,
+ python3-ply,
+ python3-setuptools,
+ python3-yaml,
+ wayland-protocols,
+ x11proto-dev,
+ zlib1g-dev
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://www.mesa3d.org/
+
+Package: cix-mesa
+Architecture: arm64
+Depends:
+ cix-libglvnd,
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: CIX Mesa OpenGL compatibility stack
+ This package provides the CIX Mesa GLX and EGL vendor libraries, GBM, and
+ Gallium zink and software drivers under the private CIX compatibility prefix.

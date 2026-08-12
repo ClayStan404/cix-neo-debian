@@ -1,0 +1,22 @@
+Source: cix-noe-umd
+Section: non-free/libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-python3,
+ python3:any,
+ python3-installer,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-noe-umd
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ ${shlibs:Depends},
+ cix-npu-umd,
+Description: CIX NOE userspace runtime
+ This package installs the CIX NOE libraries, headers, pkg-config metadata,
+ and Python binding.

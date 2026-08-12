@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_CXXFLAGS_MAINT_APPEND = -march=armv9-a+sve2
+
+include /usr/share/dpkg/buildflags.mk
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	dh_auto_build -- \
+		CROSS_COMPILE= \
+		CFLAGS="$(CPPFLAGS) $(CXXFLAGS) -fPIC -DCME_SUPPORT_OPENCL" \
+		LDFLAGS="-shared -Wl,-soname,libcme.so.1 $(LDFLAGS) -Wl,-rpath,/usr/share/cix/lib -Wl,--enable-new-dtags" \
+		LIBS="-lyuv -L/usr/share/cix/lib -ldrm_cix $$(pkg-config --libs OpenCL)" \
+		INC_DIR="include /usr/share/cix/include/drm /usr/share/cix/include include/cixdrm /usr/include/libdrm /usr/include"
+
+override_dh_auto_clean:
+	dh_auto_clean -- CROSS_COMPILE=
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 0644 debian/cix-libcme/usr/share/cix/lib/cme/*.cl
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/share/cix/lib

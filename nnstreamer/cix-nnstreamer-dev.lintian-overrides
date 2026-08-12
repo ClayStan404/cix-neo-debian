@@ -1,0 +1,3 @@
+# CIX development files match the private runtime overlay.
+cix-nnstreamer-dev: arch-dependent-file-in-usr-share [usr/share/cix/lib/*.a]
+cix-nnstreamer-dev: initial-upload-closes-no-bugs

@@ -1,0 +1,4 @@
+# This is the first internal release, so there is no Debian bug to close.
+initial-upload-closes-no-bugs
+# Upstream grants GPL-2+ rights but carries no explicit copyright notice.
+copyright-without-copyright-notice

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+profile=/usr/share/alsa/ucm2/conf.d/cix-ipbloq-hda/HiFi.conf
+
+case "$1" in
+    remove|purge)
+        if [ -L "$profile" ]; then
+            rm -f "$profile"
+        fi
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

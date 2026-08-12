@@ -1,0 +1,21 @@
+PACKAGE_NAME="cix-wlan"
+PACKAGE_VERSION="#MODULE_VERSION#"
+
+MAKE[0]="make -f wlan-build.mk KERNEL_SOURCE=${kernel_source_dir}"
+
+BUILT_MODULE_NAME[0]="wlan_cnss_core_pcie"
+BUILT_MODULE_LOCATION[0]="AIO/rootfs-ve-f10.build/lib/modules"
+DEST_MODULE_LOCATION[0]="/updates"
+
+BUILT_MODULE_NAME[1]="wlan"
+BUILT_MODULE_LOCATION[1]="AIO/rootfs-ve-f10.build/lib/modules"
+DEST_MODULE_LOCATION[1]="/updates"
+
+BUILT_MODULE_NAME[2]="rtl_wlan"
+BUILT_MODULE_LOCATION[2]="rtl-wlan"
+DEST_MODULE_LOCATION[2]="/updates"
+
+BUILD_EXCLUSIVE_ARCH="aarch64"
+BUILD_EXCLUSIVE_CONFIG="CONFIG_ARCH_CIX"
+
+AUTOINSTALL="yes"

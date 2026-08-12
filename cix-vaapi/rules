@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/cix/pkgconfig \
+		dh_auto_configure --buildsystem=cmake -- -DCMAKE_BUILD_TYPE=None
+
+override_dh_auto_install:
+
+override_dh_makeshlibs:

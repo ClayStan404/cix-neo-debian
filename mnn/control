@@ -1,0 +1,27 @@
+Source: cix-mnn
+Section: science
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ cmake,
+ debhelper-compat (= 13),
+ dh-sequence-python3,
+ patchelf,
+ python3:any,
+ python3-installer,
+ python3-numpy-dev,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-mnn
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ ${shlibs:Depends},
+ libvulkan1,
+ ocl-icd-libopencl1,
+ python3-numpy,
+Description: CIX MNN inference runtime
+ This package provides the CIX MNN runtime library, LLM and diffusion
+ utilities, and the Python 3.13 bindings with OpenCL and Vulkan support.

@@ -1,0 +1,6 @@
+obj-aarch64-linux-gnu/cix/libdrm_cix.so.1 usr/share/cix/lib
+obj-aarch64-linux-gnu/cix/libdrm_cix.so.1.0.0 usr/share/cix/lib
+obj-aarch64-linux-gnu/libdrm.so.2 usr/share/cix/lib/dpu
+obj-aarch64-linux-gnu/libdrm.so.2.4.0 usr/share/cix/lib/dpu
+obj-aarch64-linux-gnu/tests/cix/cix_test usr/share/cix/bin
+obj-aarch64-linux-gnu/tests/modetest/modetest usr/share/cix/bin

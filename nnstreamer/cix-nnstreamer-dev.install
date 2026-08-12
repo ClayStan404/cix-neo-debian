@@ -1,0 +1,3 @@
+usr/share/cix/include
+usr/share/cix/lib/*.a
+usr/share/cix/lib/pkgconfig

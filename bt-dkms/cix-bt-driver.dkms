@@ -1,0 +1,14 @@
+PACKAGE_NAME="cix-bt-driver"
+PACKAGE_VERSION="#MODULE_VERSION#"
+
+MAKE[0]="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build modules"
+CLEAN="make -C ${kernel_source_dir} M=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build clean"
+
+BUILT_MODULE_NAME[0]="rtl_btusb"
+BUILT_MODULE_LOCATION[0]="."
+DEST_MODULE_LOCATION[0]="/updates"
+
+BUILD_EXCLUSIVE_ARCH="aarch64"
+BUILD_EXCLUSIVE_CONFIG="CONFIG_ARCH_CIX"
+
+AUTOINSTALL="yes"

@@ -1,0 +1,4 @@
+include/drm/* usr/share/cix/include/drm
+obj-aarch64-linux-gnu/cix/libdrm_cix.so usr/share/cix/lib
+obj-aarch64-linux-gnu/libdrm.so usr/share/cix/lib/dpu
+debian/package-files/libdrm_cix.pc usr/lib/aarch64-linux-gnu/pkgconfig

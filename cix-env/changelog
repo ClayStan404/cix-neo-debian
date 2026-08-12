@@ -1,0 +1,5 @@
+cix-env (1.0.0) trixie; urgency=medium
+
+  * Package the CIX graphics, multimedia, and device environment defaults.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 10:10:00 +0800

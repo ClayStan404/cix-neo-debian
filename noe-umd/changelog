@@ -1,0 +1,6 @@
+cix-noe-umd (3.1.4-1) trixie; urgency=medium
+
+  * Package the current NOE runtime and Python binding without invoking pip
+    from maintainer scripts.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 10:40:00 +0800

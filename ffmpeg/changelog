@@ -1,0 +1,6 @@
+cix-ffmpeg (8:7.1.2+cix1-1) trixie; urgency=medium
+
+  * Package the CIX FFmpeg multimedia stack for Debian 13.
+  * Use the Debian 13 Clang compiler for stable native ARM64 builds.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 12:34:20 +0800

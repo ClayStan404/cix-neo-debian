@@ -1,0 +1,141 @@
+Source: cix-ffmpeg
+Section: video
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ cix-libva-dev,
+ cix-linux-libc-dev,
+ cix-vpu-driver-dev,
+ clang,
+ debhelper-compat (= 13),
+ libaom-dev,
+ libass-dev,
+ libbz2-dev,
+ libdav1d-dev,
+ libdrm-dev,
+ libfontconfig-dev,
+ libfreetype-dev,
+ libfribidi-dev,
+ libgnutls28-dev,
+ liblzma-dev,
+ libmp3lame-dev,
+ libopenjp2-7-dev,
+ libopus-dev,
+ libvorbis-dev,
+ libvpx-dev,
+ libwebp-dev,
+ libx264-dev,
+ libx265-dev,
+ libxml2-dev,
+ libzimg-dev,
+ pkgconf,
+ zlib1g-dev,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://ffmpeg.org/
+
+Package: cix-ffmpeg
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg command-line multimedia tools
+ This package provides the CIX-optimized ffmpeg and ffprobe tools. They use
+ the private CIX multimedia libraries and hardware acceleration interfaces.
+
+Package: cix-libavcodec61
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg codec library
+ This package provides the private CIX build of the FFmpeg audio and video
+ codec library.
+
+Package: cix-libavformat61
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg container format library
+ This package provides the private CIX build of the FFmpeg muxing and
+ demuxing library.
+
+Package: cix-libavutil59
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg utility library
+ This package provides the common utility library used by the private CIX
+ FFmpeg multimedia stack.
+
+Package: cix-libavfilter10
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg media filter library
+ This package provides the private CIX build of the FFmpeg audio and video
+ filtering library.
+
+Package: cix-libavdevice61
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg device handling library
+ This package provides the private CIX build of the FFmpeg multimedia device
+ input and output library.
+
+Package: cix-libpostproc58
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg postprocessing library
+ This package provides the private CIX build of the FFmpeg video
+ postprocessing library.
+
+Package: cix-libswresample5
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg audio resampling library
+ This package provides the private CIX build of the FFmpeg audio resampling
+ and format conversion library.
+
+Package: cix-libswscale8
+Architecture: arm64
+Section: libs
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX FFmpeg image scaling library
+ This package provides the private CIX build of the FFmpeg image scaling and
+ pixel format conversion library.
+
+Package: cix-ffmpeg-dev
+Architecture: arm64
+Section: libdevel
+Depends:
+ cix-libavcodec61 (= ${binary:Version}),
+ cix-libavdevice61 (= ${binary:Version}),
+ cix-libavfilter10 (= ${binary:Version}),
+ cix-libavformat61 (= ${binary:Version}),
+ cix-libavutil59 (= ${binary:Version}),
+ cix-libpostproc58 (= ${binary:Version}),
+ cix-libswresample5 (= ${binary:Version}),
+ cix-libswscale8 (= ${binary:Version}),
+ ${misc:Depends},
+Description: CIX FFmpeg development files
+ This package provides headers, unversioned library links, and pkg-config
+ metadata for building software against the private CIX FFmpeg libraries.

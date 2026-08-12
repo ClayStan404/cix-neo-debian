@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=+lto
+
+private_prefix = /usr/share/cix
+private_libdir = /usr/lib/aarch64-linux-gnu/cix
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_autoreconf:
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=meson -- \
+		-Ddriverdir=/usr/lib/aarch64-linux-gnu/dri \
+		-Dwith_glx=yes \
+		-Dwith_wayland=yes \
+		-Dwith_x11=yes \
+		--libdir=$(private_libdir) \
+		--prefix=$(private_prefix)
+
+override_dh_makeshlibs:
+	dh_makeshlibs --no-scripts
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/cix-libva2$(private_libdir):$(CURDIR)/debian/cix-libva-drm2$(private_libdir):$(CURDIR)/debian/cix-libva-glx2$(private_libdir):$(CURDIR)/debian/cix-libva-wayland2$(private_libdir):$(CURDIR)/debian/cix-libva-x11-2$(private_libdir)

@@ -1,0 +1,20 @@
+Source: cix-bt-driver
+Section: kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-dkms,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Testsuite: autopkgtest-pkg-dkms
+
+Package: cix-bt-driver
+Architecture: all
+Depends:
+ ${misc:Depends},
+ cix-firmware (>= 1.0.0),
+Description: CIX Realtek Bluetooth kernel driver source for DKMS
+ This package installs the Realtek Bluetooth USB driver source and DKMS
+ metadata. DKMS compiles the module for each compatible CIX kernel installed
+ on the target system.

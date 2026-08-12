@@ -1,0 +1,18 @@
+Source: cix-firmware
+Section: non-free-firmware/kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://developer.cixtech.com/
+
+Package: cix-firmware
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+Description: firmware binaries for CIX devices
+ This package installs proprietary firmware for CIX sensor-hub, WLAN, and
+ Bluetooth devices.

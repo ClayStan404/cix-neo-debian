@@ -1,0 +1,2 @@
+# The udev rules only set device permissions; they do not advertise hardware.
+cix-env: appstream-metadata-missing-modalias-provide

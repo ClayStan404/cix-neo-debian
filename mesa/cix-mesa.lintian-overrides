@@ -1,0 +1,8 @@
+# The private compatibility stack coexists with Debian's system Mesa and is
+# selected by the CIX graphics library search path.
+cix-mesa: dir-or-file-in-opt [opt/*]
+cix-mesa: package-modifies-ld.so-search-path [etc/ld.so.conf.d/01-cixgpu-compat.conf]
+# Updating this private library path requires ldconfig after package changes.
+cix-mesa: package-has-unnecessary-activation-of-ldconfig-trigger
+# This internal package is not uploaded through the Debian bug tracker.
+cix-mesa: initial-upload-closes-no-bugs

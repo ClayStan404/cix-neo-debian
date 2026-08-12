@@ -1,0 +1,5 @@
+cix-libglvnd (1.7.0+cix1-1) trixie; urgency=medium
+
+  * Initial CIX Neo package.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 12:00:00 +0800

@@ -1,0 +1,28 @@
+Source: cix-libglvnd
+Section: libs
+Priority: optional
+Maintainer: CIX Linux Team <linux@cixtech.com>
+Uploaders: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ libudev-dev,
+ libx11-dev,
+ libxext-dev,
+ meson,
+ ninja-build,
+ pkgconf,
+ python3:any,
+ x11proto-dev
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://gitlab.freedesktop.org/glvnd/libglvnd
+
+Package: cix-libglvnd
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: CIX private GL vendor-neutral dispatch libraries
+ This package provides the CIX private libglvnd stack used by the compatible
+ graphics userspace. It is installed outside the system library search path so
+ it can coexist with Debian's libglvnd packages.

@@ -1,0 +1,20 @@
+Source: cix-wlan
+Section: kernel
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-sequence-dkms,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Testsuite: autopkgtest-pkg-dkms
+
+Package: cix-wlan
+Architecture: all
+Depends:
+ ${misc:Depends},
+ cix-firmware (>= 1.0.0),
+Description: CIX QCA and Realtek WLAN kernel driver source for DKMS
+ This package installs the QCA FC6XE and Realtek RTL8852B PCIe WLAN driver
+ sources and DKMS metadata. DKMS compiles the three modules for each compatible
+ CIX kernel installed on the target system.

@@ -1,0 +1,3 @@
+noe_engine_cpp/libnoe_engine.so usr/share/cix/lib
+noe_engine_cpp/noe_engine_benchmark usr/share/cix/bin
+noe_engine_cpp/noe_engine.h usr/share/cix/include

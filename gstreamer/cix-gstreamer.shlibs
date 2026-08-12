@@ -1,0 +1,3 @@
+libgstvideo-1.0 0 cix-gstreamer (>= 1.26.2+cix1)
+libgstgl-1.0 0 cix-gstreamer (>= 1.26.2+cix1)
+libgstwayland-1.0 0 cix-gstreamer (>= 1.26.2+cix1)

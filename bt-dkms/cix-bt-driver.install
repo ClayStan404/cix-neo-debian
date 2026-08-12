@@ -1,0 +1,8 @@
+Makefile usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_bt.c usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_bt.h usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_coex.c usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_coex.h usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_compat.h usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_misc.c usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+rtk_misc.h usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}

@@ -1,0 +1,30 @@
+Source: cix-gpu-umd
+Section: non-free/libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ libdrm-dev,
+ libncurses-dev,
+ libvulkan-dev,
+ libwayland-dev,
+ libx11-dev,
+ libx11-xcb-dev,
+ libxcb-dri3-dev,
+ libxcb-present-dev,
+ libxcb-sync-dev,
+ libxcb1-dev,
+ libxshmfence-dev,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-gpu-umd
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cix-gpu-dkms,
+ python3:any,
+Description: CIX Mali GPU userspace driver
+ This package installs the proprietary CIX Mali EGL, GBM, OpenCL, and Vulkan
+ userspace driver together with its diagnostics and graphics-switch service.

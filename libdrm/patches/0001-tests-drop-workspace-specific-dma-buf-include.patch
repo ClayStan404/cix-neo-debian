@@ -1,0 +1,23 @@
+From: CIX Neo Build Team <noreply@cixtech.com>
+Date: Tue, 11 Aug 2026 12:30:00 +0800
+Subject: tests: drop workspace-specific dma-buf include
+
+The file already includes the exported <linux/dma-buf.h> header.  The second
+include assumes the source lives five directories below an in-tree Linux
+checkout, which is not valid for a standalone Debian source package.
+---
+ tests/cix/cix_test.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/tests/cix/cix_test.c b/tests/cix/cix_test.c
+index 9ac643e..4d7871e 100644
+--- a/tests/cix/cix_test.c
++++ b/tests/cix/cix_test.c
+@@ -11,7 +11,6 @@
+ #include "../../cix/cix_bo.h"
+ #include "../../cix/cix_pattern.h"
+ #include "../../cix/cix_format.h"
+-#include "../../../../../linux/usr/include/linux/dma-buf.h"
+ 
+ static int g_exit = 0;
+ void cix_test_signal_handler(int signal_num)

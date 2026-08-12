@@ -1,0 +1,2 @@
+# This internal source is versioned by its manifest branch rather than uscan.
+cix-libcme source: debian-watch-file-is-missing

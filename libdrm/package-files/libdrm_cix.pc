@@ -1,0 +1,10 @@
+prefix=/usr
+libdir=${prefix}/share/cix/lib
+includedir=${prefix}/share/cix/include/drm
+
+Name: libdrm_cix
+Description: Userspace interface to CIX kernel DRM services
+Version: 1.0.0
+Requires: libdrm
+Libs: -L${libdir} -ldrm_cix
+Cflags: -I${includedir}

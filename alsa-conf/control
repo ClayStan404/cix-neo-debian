@@ -1,0 +1,17 @@
+Source: cix-alsa-conf
+Section: sound
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-alsa-conf
+Architecture: all
+Depends:
+ ${misc:Depends},
+ systemd,
+Description: CIX ALSA UCM configuration
+ This package installs ALSA Use Case Manager profiles for CIX audio devices
+ and selects the board-specific HDA profile during system startup.

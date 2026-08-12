@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX ISP userspace driver
+Source: ssh://git@gitmirror.cixcomputing.com/cix_proprietary/cix_proprietary
+
+Files: *
+Copyright: 2024-2026 Cix Technology Group Co., Ltd.
+License: CIX-Proprietary
+ All rights reserved. Redistribution and use are subject to the applicable
+ agreement with Cix Technology Group Co., Ltd.

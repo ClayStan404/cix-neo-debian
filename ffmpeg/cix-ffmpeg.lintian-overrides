@@ -1,0 +1,3 @@
+cix-ffmpeg: initial-upload-closes-no-bugs
+cix-ffmpeg: no-manual-page [usr/libexec/cix/ffmpeg]
+cix-ffmpeg: no-manual-page [usr/libexec/cix/ffprobe]

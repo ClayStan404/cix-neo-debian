@@ -1,0 +1,5 @@
+cix-bt-driver (1.0.0-1) trixie; urgency=medium
+
+  * Initial CIX Neo DKMS source package.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 15:45:00 +0800

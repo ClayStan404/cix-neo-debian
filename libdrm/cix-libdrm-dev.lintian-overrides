@@ -1,0 +1,3 @@
+# CIX keeps its private ABI and headers under /usr/share/cix.
+cix-libdrm-dev: arch-dependent-file-in-usr-share [usr/share/cix/lib/*]
+cix-libdrm-dev: initial-upload-closes-no-bugs

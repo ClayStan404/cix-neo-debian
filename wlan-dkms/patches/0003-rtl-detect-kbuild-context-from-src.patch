@@ -1,0 +1,19 @@
+From: CIX Neo Build System <noreply@cixtech.com>
+Date: Wed, 12 Aug 2026 09:50:00 +0800
+Subject: build: detect the Realtek Kbuild context from src
+
+DKMS supplies KERNELRELEASE to its outer make command and GNU make propagates
+command-line variables into recursive invocations. It therefore cannot identify
+the inner kernel build. The kernel build system sets src only while reading the
+external module Makefile, making it the reliable context test.
+---
+ rtl-wlan/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/rtl-wlan/Makefile
++++ b/rtl-wlan/Makefile
+@@ -619,3 +619,3 @@
+-ifneq ($(KERNELRELEASE),)
++ifneq ($(src),)
+ ########### COMMON #################################
+ include $(src)/common.mk

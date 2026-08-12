@@ -1,0 +1,3 @@
+0001-build-inherit-dkms-jobserver.patch
+0002-build-dispatch-qca-as-recursive-make.patch
+0003-rtl-detect-kbuild-context-from-src.patch

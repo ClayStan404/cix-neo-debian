@@ -1,0 +1,12 @@
+[Unit]
+Description=Select the board-specific CIX ALSA UCM profile
+After=local-fs.target systemd-udevd.service
+Before=sound.target alsa-restore.service
+ConditionPathExists=/usr/share/alsa/ucm2/conf.d/cix-ipbloq-hda/cix-ipbloq-hda.conf
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/cix-alsa-conf/select-hifi-profile
+
+[Install]
+WantedBy=sysinit.target

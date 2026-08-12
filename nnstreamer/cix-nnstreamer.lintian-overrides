@@ -1,0 +1,4 @@
+# CIX multimedia components intentionally use the private runtime overlay.
+cix-nnstreamer: arch-dependent-file-in-usr-share [usr/share/cix/*]
+cix-nnstreamer: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/*]
+cix-nnstreamer: initial-upload-closes-no-bugs

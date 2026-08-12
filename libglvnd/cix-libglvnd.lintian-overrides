@@ -1,0 +1,5 @@
+# This private compatibility stack intentionally coexists with Debian's GL
+# dispatch libraries and is selected explicitly by CIX launch tooling.
+cix-libglvnd: dir-or-file-in-opt [opt/*]
+# This internal package is not uploaded through the Debian bug tracker.
+cix-libglvnd: initial-upload-closes-no-bugs

@@ -1,0 +1,68 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/buildflags.mk
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+BUILD_DIR = obj-$(DEB_HOST_GNU_TYPE)
+PACKAGE_DIR = debian/cix-mnn
+MNN_WHEEL = prebuild_whl/mnn_vulkan_opencl-3.6.1-cp313-cp313-linux_aarch64.whl
+
+%:
+	dh $@ --with python3 --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DMNN_KLEIDIAI=ON \
+		-DMNN_BUILD_LLM=ON \
+		-DMNN_BUILD_AUDIO=ON \
+		-DMNN_BUILD_LLM_OMNI=ON \
+		-DMNN_BUILD_DIFFUSION=ON \
+		-DMNN_BUILD_OPENCV=ON \
+		-DMNN_IMGCODECS=ON \
+		-DMNN_SEP_BUILD=OFF \
+		-DMNN_SUPPORT_TRANSFORMER_FUSE=ON \
+		-DMNN_OPENCL=ON \
+		-DMNN_VULKAN=ON \
+		-DMNN_LOW_MEMORY=ON
+
+override_dh_auto_install:
+	test -f $(MNN_WHEEL)
+	install -d $(PACKAGE_DIR)/usr/share/cix/lib
+	install -m 0644 $(BUILD_DIR)/libMNN.so $(PACKAGE_DIR)/usr/share/cix/lib/
+	install -d $(PACKAGE_DIR)/usr/share/cix/bin/mnn
+	install -m 0755 \
+		$(BUILD_DIR)/llm_demo \
+		$(BUILD_DIR)/llm_bench \
+		$(BUILD_DIR)/diffusion_demo \
+		$(PACKAGE_DIR)/usr/share/cix/bin/mnn/
+	patchelf --set-rpath /usr/share/cix/lib \
+		$(PACKAGE_DIR)/usr/share/cix/bin/mnn/llm_demo
+	patchelf --set-rpath /usr/share/cix/lib \
+		$(PACKAGE_DIR)/usr/share/cix/bin/mnn/llm_bench
+	patchelf --set-rpath /usr/share/cix/lib \
+		$(PACKAGE_DIR)/usr/share/cix/bin/mnn/diffusion_demo
+	python3 -m installer --destdir=$(PACKAGE_DIR) --prefix=/usr $(MNN_WHEEL)
+	find $(PACKAGE_DIR)/usr/local/lib/python3.13/dist-packages \
+		-type f -name '*.so' -exec patchelf --remove-rpath {} +
+	install -d $(PACKAGE_DIR)/usr/lib/python3
+	mv $(PACKAGE_DIR)/usr/local/lib/python3.13/dist-packages \
+		$(PACKAGE_DIR)/usr/lib/python3/
+	install -d $(PACKAGE_DIR)/usr/bin
+	mv $(PACKAGE_DIR)/usr/local/bin/* $(PACKAGE_DIR)/usr/bin/
+	rmdir $(PACKAGE_DIR)/usr/local/bin
+	rmdir $(PACKAGE_DIR)/usr/local/lib/python3.13
+	rmdir $(PACKAGE_DIR)/usr/local/lib
+	rmdir $(PACKAGE_DIR)/usr/local
+
+override_dh_makeshlibs:
+	dh_makeshlibs -n
+
+override_dh_python3:
+	dh_python3
+	dh_numpy3
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/share/cix/lib

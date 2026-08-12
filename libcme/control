@@ -1,0 +1,38 @@
+Source: cix-libcme
+Section: libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ cix-libdrm-dev,
+ debhelper-compat (= 13),
+ libyuv-dev,
+ ocl-icd-opencl-dev,
+ pkgconf,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-libcme
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX Media Engine runtime library
+ The CIX Media Engine provides hardware-accelerated image processing with
+ CPU, DRM/DPU, and OpenCL execution paths.
+ .
+ This package contains the runtime library and OpenCL kernels.
+
+Package: cix-libcme-dev
+Section: libdevel
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libcme (= ${binary:Version}),
+ cix-libdrm-dev,
+ libyuv-dev,
+ ocl-icd-opencl-dev,
+ ${misc:Depends},
+Description: development files for the CIX Media Engine
+ This package contains the headers, linker name, and pkg-config metadata used
+ to build applications against the CIX Media Engine.

@@ -1,0 +1,7 @@
+# CIX libdrm has an intentionally private ABI under /usr/share/cix/lib.
+cix-libcme: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/lib/aarch64-linux-gnu/libcme.so.1.1.0]
+# The established product package name is part of the CIX metapackage API.
+cix-libcme: package-name-doesnt-match-sonames libcme1
+# ABI compatibility is currently tracked through the package shlibs file.
+cix-libcme: no-symbols-control-file usr/lib/aarch64-linux-gnu/libcme.so.1.1.0
+cix-libcme: initial-upload-closes-no-bugs

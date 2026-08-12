@@ -1,0 +1,5 @@
+cix-alsa-conf (1.0.1) trixie; urgency=medium
+
+  * Package the CIX ALSA UCM profiles as a native Debian source package.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 09:57:26 +0800

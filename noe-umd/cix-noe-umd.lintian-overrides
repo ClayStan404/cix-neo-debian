@@ -1,0 +1,6 @@
+# CIX keeps its private ABI in /usr/share/cix.
+cix-noe-umd: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# Released proprietary libraries and Python extensions must not be stripped.
+cix-noe-umd: unstripped-binary-or-object [usr/lib/python3/dist-packages/libnoe/*]
+cix-noe-umd: unstripped-binary-or-object [usr/share/cix/lib/*]
+cix-noe-umd: initial-upload-closes-no-bugs

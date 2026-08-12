@@ -1,0 +1,65 @@
+#!/bin/sh
+set -e
+
+SOURCE_DIR="/usr/share/alsa/ucm2/conf.d/cix-ipbloq-hda"
+TARGET_PROFILE=""
+
+read_text_file() {
+	if [ ! -r "$1" ]; then
+		return 0
+	fi
+
+	tr -d '\000' < "$1" 2>/dev/null || true
+}
+
+select_profile() {
+	model_name=$(read_text_file /proc/device-tree/model)
+
+	# Image/chroot builds have no device-tree; defer selection to first boot.
+	if [ -z "${model_name}" ]; then
+		echo "cix-alsa-conf: no board model in /proc/device-tree/model, skip HiFi selection" >&2
+		return 1
+	fi
+
+	# Match more specific boards first (sky1p before sky1).
+	case "${model_name}" in
+		*"CIX sky1p CRB1 platform"*)
+			TARGET_PROFILE="HiFi_sky1p_crb1.conf"
+			;;
+		*"CIX sky1p EVB platform"*)
+			TARGET_PROFILE="HiFi_sky1p_evb.conf"
+			;;
+		*"CIX sky1 EVB board"*)
+			TARGET_PROFILE="HiFi_sky1_evb.conf"
+			;;
+		*"Radxa Orion O6"*)
+			TARGET_PROFILE="HiFi_sky1_radxa.conf"
+			;;
+		*)
+			echo "cix-alsa-conf: unknown board model '${model_name}', cannot select HiFi profile" >&2
+			exit 1
+			;;
+	esac
+}
+
+main() {
+	if [ ! -f "${SOURCE_DIR}/cix-ipbloq-hda.conf" ]; then
+		echo "cix-alsa-conf: missing ${SOURCE_DIR}/cix-ipbloq-hda.conf" >&2
+		exit 1
+	fi
+
+	if ! select_profile; then
+		exit 0
+	fi
+
+	if [ ! -f "${SOURCE_DIR}/${TARGET_PROFILE}" ]; then
+		echo "cix-alsa-conf: missing ${SOURCE_DIR}/${TARGET_PROFILE}" >&2
+		exit 1
+	fi
+
+	ln -sfn "${TARGET_PROFILE}" "${SOURCE_DIR}/HiFi.conf"
+
+	echo "cix-alsa-conf: linked HiFi.conf -> ${TARGET_PROFILE}"
+}
+
+main "$@"

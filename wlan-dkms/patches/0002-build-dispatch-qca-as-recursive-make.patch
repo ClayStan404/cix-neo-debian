@@ -1,0 +1,21 @@
+From: CIX Neo Build System <noreply@cixtech.com>
+Date: Wed, 12 Aug 2026 09:45:00 +0800
+Subject: build: dispatch QCA drivers as recursive make
+
+Use GNU make's recursive invocation instead of hiding a make command after a
+shell cd. This preserves the outer DKMS jobserver file descriptors.
+---
+ AIO/build/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/AIO/build/Makefile
++++ b/AIO/build/Makefile
+@@ -85,7 +85,7 @@
+ #
+ drivers: rootfs_prep
+ 	@echo Build drivers
+-	cd ${WLAN_DRIVER_TOPDIR} && ${MAKEARCH}
++	+$(MAKE) -C ${WLAN_DRIVER_TOPDIR} ARCH=$(KERNELARCH) CROSS_COMPILE=$(TOOLPREFIX)
+ 	find ${WLAN_DRIVER_TOPDIR} -name 'cfg80211.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules ';'
+ 	find ${WLAN_DRIVER_TOPDIR} -name 'compat.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules ';'
+ 	find ${WLAN_DRIVER_TOPDIR} -name 'wlan*.ko' -exec cp '{}' $(INSTALL_ROOT)/lib/modules ';'

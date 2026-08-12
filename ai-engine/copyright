@@ -1,0 +1,15 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX AI Engine
+Source: ssh://git@gitmirror.cixcomputing.com/cix_opensource/cix_ai_engine
+
+Files: *
+Copyright: 2024-2026 Cix Technology Group Co., Ltd.
+License: Apache-2.0
+
+Files: debian/*
+Copyright: 2026 Cix Technology Group Co., Ltd.
+License: Apache-2.0
+
+License: Apache-2.0
+ On Debian systems, the complete text of the Apache License, Version 2.0 is
+ available in /usr/share/common-licenses/Apache-2.0.

@@ -1,0 +1,2 @@
+opt/cixgpu-compat opt
+debian/package-files/01-cixgpu-compat.conf etc/ld.so.conf.d

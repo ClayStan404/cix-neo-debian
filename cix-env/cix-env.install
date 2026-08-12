@@ -1,0 +1,4 @@
+debian/package-files/etc/environment.d/cix_env.conf etc/environment.d
+debian/package-files/etc/profile.d/cix-conf.sh etc/profile.d
+debian/package-files/usr/lib/modprobe.d/cix-blacklist.conf usr/lib/modprobe.d
+debian/package-files/usr/lib/udev/rules.d/99-cix.rules usr/lib/udev/rules.d

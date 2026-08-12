@@ -1,0 +1,7 @@
+Makefile usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+armcb_isp_entry.c usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+cixvihw usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+common usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+isp usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+platform usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+sensor usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}

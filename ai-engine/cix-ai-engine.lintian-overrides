@@ -1,0 +1,6 @@
+# CIX runtime libraries share the established private library directory.
+cix-ai-engine: arch-dependent-file-in-usr-share [usr/share/cix/bin/noe_engine_benchmark]
+cix-ai-engine: arch-dependent-file-in-usr-share [usr/share/cix/lib/*]
+cix-ai-engine: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/bin/noe_engine_benchmark]
+cix-ai-engine: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/lib/libnoe_engine.so]
+cix-ai-engine: initial-upload-closes-no-bugs

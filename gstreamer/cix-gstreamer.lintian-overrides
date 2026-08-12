@@ -1,0 +1,5 @@
+# CIX GStreamer components intentionally use the private runtime overlay.
+cix-gstreamer: arch-dependent-file-in-usr-share [usr/share/cix/*]
+cix-gstreamer: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/lib/libgst*.so.*]
+cix-gstreamer: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/lib/gstreamer-1.0/*]
+cix-gstreamer: initial-upload-closes-no-bugs

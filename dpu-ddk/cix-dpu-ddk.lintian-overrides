@@ -1,0 +1,9 @@
+# CIX keeps its private tools and ABI in /usr/share/cix.
+cix-dpu-ddk: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# The DDK intentionally ships validated private copies used by its test tools.
+cix-dpu-ddk: embedded-library libxml2 [usr/share/cix/lib/dpu/libxml2.so.2]
+cix-dpu-ddk: embedded-library zlib [usr/share/cix/lib/dpu/libz.so.1]
+# Released proprietary binaries must not be stripped or relinked.
+cix-dpu-ddk: hardening-no-pie [usr/share/cix/bin/dpu/*]
+cix-dpu-ddk: unstripped-binary-or-object [usr/share/cix/bin/dpu/*]
+cix-dpu-ddk: initial-upload-closes-no-bugs

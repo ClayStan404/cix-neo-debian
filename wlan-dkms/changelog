@@ -1,0 +1,5 @@
+cix-wlan (1.0.0-1) trixie; urgency=medium
+
+  * Initial CIX Neo combined WLAN DKMS source package.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 16:00:00 +0800

@@ -1,0 +1,8 @@
+# CIX keeps its private tools and ABI in /usr/share/cix.
+cix-isp-umd: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# The released ISP application statically embeds its private libpcap build.
+cix-isp-umd: embedded-library libpcap [usr/share/cix/bin/isp_app]
+# Released proprietary binaries must not be stripped or relinked.
+cix-isp-umd: hardening-no-pie [usr/share/cix/bin/*]
+cix-isp-umd: unstripped-binary-or-object [usr/share/cix/bin/*]
+cix-isp-umd: initial-upload-closes-no-bugs

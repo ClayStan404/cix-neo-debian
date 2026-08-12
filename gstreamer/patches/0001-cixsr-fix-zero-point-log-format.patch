@@ -1,0 +1,31 @@
+Description: Fix zero-point format in CIX SR debug messages
+ tensor_desc_t defines zero_point as int32_t, but the debug messages read it as
+ a double through the %f conversion. Use the matching integer conversion to
+ avoid undefined behaviour when debug logging is enabled.
+Author: Clay Stan <claystan97@gmail.com>
+Forwarded: no
+Last-Update: 2026-08-11
+---
+ subprojects/gst-plugins-cix/plugins/sr/gstcixsr.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+--- a/subprojects/gst-plugins-cix/plugins/sr/gstcixsr.c
++++ b/subprojects/gst-plugins-cix/plugins/sr/gstcixsr.c
+@@ -163,7 +163,7 @@ gst_cixsr_start (GstBaseTransform * trans
+       return FALSE;
+     }
+     GST_DEBUG_OBJECT (trans,
+-        "Input %d desc: id=%d, size=%d, scale=%f, zero_point=%f, data_type=%d",
++        "Input %d desc: id=%d, size=%d, scale=%f, zero_point=%d, data_type=%d",
+         i, desc.id, desc.size, desc.scale, desc.zero_point, desc.data_type);
+   }
+ 
+@@ -189,7 +189,7 @@ gst_cixsr_start (GstBaseTransform * trans
+       return FALSE;
+     }
+     GST_DEBUG_OBJECT (trans,
+-        "Output %d desc: id=%d, size=%d, scale=%f, zero_point=%f, data_type=%d",
++        "Output %d desc: id=%d, size=%d, scale=%f, zero_point=%d, data_type=%d",
+         i, desc.id, desc.size, desc.scale, desc.zero_point, desc.data_type);
+   }
+ 

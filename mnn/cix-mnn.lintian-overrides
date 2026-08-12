@@ -1,0 +1,9 @@
+# CIX runtime files retain the established private runtime layout.
+cix-mnn: arch-dependent-file-in-usr-share [usr/share/cix/bin/mnn/*]
+cix-mnn: arch-dependent-file-in-usr-share [usr/share/cix/lib/*]
+cix-mnn: custom-library-search-path RUNPATH /usr/share/cix/lib [usr/share/cix/bin/mnn/*]
+cix-mnn: initial-upload-closes-no-bugs
+cix-mnn: no-manual-page [usr/bin/mnn]
+cix-mnn: no-manual-page [usr/bin/mnnconvert]
+cix-mnn: no-manual-page [usr/bin/mnnquant]
+cix-mnn: shared-library-lacks-version [usr/share/cix/lib/libMNN.so]

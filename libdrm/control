@@ -1,0 +1,32 @@
+Source: cix-libdrm
+Section: libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ meson,
+ ninja-build,
+ pkgconf,
+ python3:any,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-libdrm
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX DRM userspace library and diagnostics
+ This package provides the CIX DRM extension library, the private CIX libdrm
+ build, and DRM diagnostic programs used by CIX platform software.
+
+Package: cix-libdrm-dev
+Section: libdevel
+Architecture: arm64
+Depends:
+ cix-libdrm (= ${binary:Version}),
+ libdrm-dev,
+ ${misc:Depends},
+Description: development files for the CIX DRM userspace library
+ This package provides the CIX DRM headers, unversioned linker names, and
+ pkg-config metadata required to build CIX platform software.

@@ -1,0 +1,89 @@
+Source: cix-libva
+Section: libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ libdrm-dev,
+ libgl-dev,
+ libwayland-dev,
+ libx11-dev,
+ libx11-xcb-dev,
+ libxcb-dri3-dev,
+ libxcb1-dev,
+ libxext-dev,
+ libxfixes-dev,
+ meson,
+ pkgconf,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://github.com/intel/libva
+
+Package: cix-libva2
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API runtime library
+ This package provides the CIX VA-API core runtime in the private CIX
+ userspace library directory.
+
+Package: cix-libva-drm2
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libva2 (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API DRM runtime library
+ This package provides the CIX VA-API DRM display backend for applications
+ using the private CIX multimedia stack.
+
+Package: cix-libva-wayland2
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libva2 (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API Wayland runtime library
+ This package provides the CIX VA-API Wayland display backend for applications
+ using the private CIX multimedia stack.
+
+Package: cix-libva-x11-2
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libva2 (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API X11 runtime library
+ This package provides the CIX VA-API X11 display backend for applications
+ using the private CIX multimedia stack.
+
+Package: cix-libva-glx2
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libva2 (= ${binary:Version}),
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API GLX runtime library
+ This package provides the CIX VA-API GLX display backend for applications
+ using the private CIX multimedia stack.
+
+Package: cix-libva-dev
+Architecture: arm64
+Section: libdevel
+Multi-Arch: same
+Depends:
+ cix-libva2 (= ${binary:Version}),
+ cix-libva-drm2 (= ${binary:Version}),
+ cix-libva-glx2 (= ${binary:Version}),
+ cix-libva-wayland2 (= ${binary:Version}),
+ cix-libva-x11-2 (= ${binary:Version}),
+ ${misc:Depends},
+Description: CIX VA-API development files
+ This package provides CIX VA-API headers, unversioned library links, and
+ pkg-config metadata for building CIX multimedia components.

@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_dwz override_dh_strip:
+
+override_dh_makeshlibs:
+
+override_dh_fixperms:
+	dh_fixperms
+	find debian/cix-npu-umd/usr/lib/aarch64-linux-gnu/pkgconfig \
+		debian/cix-npu-umd/usr/share/cix/include -type f -exec chmod 0644 -- {} +
+	chmod 0644 debian/cix-npu-umd/usr/share/cix/lib/libaipudrv.a.6.2.0

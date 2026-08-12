@@ -1,0 +1,19 @@
+Source: cix-isp-umd
+Section: non-free/utils
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ patchelf,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-isp-umd
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cix-libdrm,
+Description: CIX ISP userspace driver and tools
+ This package installs the proprietary CIX ISP application, calibration data,
+ tuning data, helper scripts, and system service.

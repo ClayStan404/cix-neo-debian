@@ -1,0 +1,6 @@
+# Device firmware is architecture-independent data even when it uses ELF.
+cix-firmware: arch-independent-package-contains-binary-or-object [usr/lib/firmware/*]
+cix-firmware: statically-linked-binary [usr/lib/firmware/*]
+cix-firmware: unstripped-binary-or-object [usr/lib/firmware/*]
+# This internal package is not uploaded through the Debian bug tracker.
+cix-firmware: initial-upload-closes-no-bugs

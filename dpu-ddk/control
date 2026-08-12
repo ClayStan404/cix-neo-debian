@@ -1,0 +1,18 @@
+Source: cix-dpu-ddk
+Section: non-free/utils
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ libdrm-dev,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-dpu-ddk
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX DPU development and validation kit
+ This package installs the proprietary CIX DPU validation tools and their
+ private runtime libraries.

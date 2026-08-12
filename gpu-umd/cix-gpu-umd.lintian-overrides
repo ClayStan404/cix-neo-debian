@@ -1,0 +1,19 @@
+# CIX keeps its private diagnostics and ABI in /usr/share/cix and /opt.
+cix-gpu-umd: arch-dependent-file-in-usr-share [usr/share/cix/*]
+cix-gpu-umd: dir-or-file-in-opt [opt/*]
+cix-gpu-umd: package-modifies-ld.so-search-path [etc/ld.so.conf.d/00-cixgpu-pro.conf]
+# The udev rule only sets permissions; it does not advertise hardware support.
+cix-gpu-umd: appstream-metadata-missing-modalias-provide
+# Released proprietary binaries must not be stripped or relinked.
+cix-gpu-umd: hardening-no-pie [usr/bin/*]
+cix-gpu-umd: hardening-no-pie [usr/share/cix/bin/*]
+cix-gpu-umd: unstripped-binary-or-object [usr/bin/*]
+cix-gpu-umd: unstripped-binary-or-object [usr/lib/aarch64-linux-gnu/cix/*]
+cix-gpu-umd: unstripped-binary-or-object [usr/share/cix/bin/*]
+# The released diagnostic tools do not include standalone manual pages.
+cix-gpu-umd: no-manual-page [usr/bin/cix-go-manager]
+cix-gpu-umd: no-manual-page [usr/bin/mali_clcc]
+cix-gpu-umd: no-manual-page [usr/bin/malisc]
+# The ldconfig trigger is required after installing the vendor search path.
+cix-gpu-umd: package-has-unnecessary-activation-of-ldconfig-trigger
+cix-gpu-umd: initial-upload-closes-no-bugs

@@ -1,0 +1,5 @@
+cix-libcme (1.1.0+cix1-1) trixie; urgency=medium
+
+  * Initial Debian 13 package for the CIX Media Engine.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 15:30:00 +0800

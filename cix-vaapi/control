@@ -1,0 +1,24 @@
+Source: cix-vaapi
+Section: video
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ cix-libcme-dev,
+ cix-libva-dev,
+ cix-vpu-driver-dev,
+ cmake,
+ debhelper-compat (= 13),
+ pkgconf,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-vaapi
+Architecture: arm64
+Multi-Arch: same
+Depends:
+ cix-libva2 (>= 2.22.1+cix1),
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: CIX VA-API hardware video driver
+ This package provides the CIX VA-API driver for hardware video decoding,
+ encoding, and video post-processing on CIX platforms.

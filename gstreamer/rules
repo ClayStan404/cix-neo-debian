@@ -1,0 +1,93 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+
+BUILD_DIR = obj-$(DEB_HOST_GNU_TYPE)
+PACKAGE_DIR = debian/cix-gstreamer
+DEV_PACKAGE_DIR = debian/cix-gstreamer-dev
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=meson -- \
+		-Dauto_features=disabled \
+		-Dtests=disabled \
+		-Dexamples=disabled \
+		-Dintrospection=disabled \
+		-Dnls=disabled \
+		-Dorc-source=system \
+		-Dbuild-tools-source=system \
+		-Dbase=enabled \
+		-Dgood=enabled \
+		-Dbad=enabled \
+		-Dcix=enabled \
+		-Dgst-plugins-base:gl=enabled \
+		-Dgst-plugins-base:x11=enabled \
+		-Dgst-plugins-base:drm=enabled \
+		-Dgst-plugins-good:v4l2=enabled \
+		-Dgst-plugins-good:gtk3=enabled \
+		-Dgst-plugins-bad:kms=enabled \
+		-Dgst-plugins-bad:fdkaac=enabled \
+		-Dgst-plugins-bad:va=disabled \
+		-Dgst-plugins-bad:wayland=enabled
+
+override_dh_auto_install:
+	install -d $(PACKAGE_DIR)/usr/share/cix/lib
+	for pattern in \
+		'libgstvideo-1.0.so*' \
+		'libgstgl-1.0.so*' \
+		'libgstwayland-1.0.so*'; do \
+		matches="$$(find $(BUILD_DIR) \( -type f -o -type l \) \
+			-name "$$pattern" ! -name '*.symbols' -print)"; \
+		test -n "$$matches"; \
+		cp -a $$matches $(PACKAGE_DIR)/usr/share/cix/lib/; \
+	done
+	install -d $(DEV_PACKAGE_DIR)/usr/share/cix/lib
+	mv $(PACKAGE_DIR)/usr/share/cix/lib/libgstvideo-1.0.so \
+		$(DEV_PACKAGE_DIR)/usr/share/cix/lib/
+	install -d $(DEV_PACKAGE_DIR)/usr/share/cix/include/gstreamer-1.0/gst/video
+	find subprojects/gst-plugins-base/gst-libs/gst/video \
+		-maxdepth 1 -type f -name '*.h' \
+		! -name '*private.h' ! -name 'video-orc-dist.h' \
+		-exec install -m 0644 {} \
+			$(DEV_PACKAGE_DIR)/usr/share/cix/include/gstreamer-1.0/gst/video/ \;
+	video_enum="$$(find $(BUILD_DIR) -type f -name video-enumtypes.h -print -quit)"; \
+		test -n "$$video_enum"; \
+		install -m 0644 "$$video_enum" \
+			$(DEV_PACKAGE_DIR)/usr/share/cix/include/gstreamer-1.0/gst/video/
+	install -d $(DEV_PACKAGE_DIR)/usr/share/cix/lib/pkgconfig
+	video_pc="$$(find $(BUILD_DIR) -type f -name gstreamer-video-1.0.pc -print -quit)"; \
+		test -n "$$video_pc"; \
+		sed \
+			-e 's|^libdir=.*|libdir=$${prefix}/share/cix/lib|' \
+			-e 's|^includedir=.*|includedir=$${prefix}/share/cix/include|' \
+			"$$video_pc" > \
+			$(DEV_PACKAGE_DIR)/usr/share/cix/lib/pkgconfig/gstreamer-video-1.0.pc
+	install -d $(PACKAGE_DIR)/usr/share/cix/lib/gstreamer-1.0
+	for plugin in \
+		libgstcoreelements.so \
+		libgstfdkaac.so \
+		libgstgtk.so \
+		libgstkms.so \
+		libgstopengl.so \
+		libgstvideo4linux2.so \
+		libgstwaylandsink.so \
+		libgstafbcparse.so \
+		libgstcixsr.so; do \
+		file="$$(find $(BUILD_DIR) -type f -name "$$plugin" -print -quit)"; \
+		test -n "$$file"; \
+		install -m 0644 "$$file" $(PACKAGE_DIR)/usr/share/cix/lib/gstreamer-1.0/; \
+	done
+	find $(PACKAGE_DIR)/usr/share/cix/lib -type f -name '*.so*' -print | \
+		while IFS= read -r file; do \
+			if readelf -h "$$file" >/dev/null 2>&1; then \
+				patchelf --set-rpath /usr/share/cix/lib "$$file"; \
+			fi; \
+		done
+
+override_dh_makeshlibs:
+	dh_makeshlibs -n
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/share/cix/lib

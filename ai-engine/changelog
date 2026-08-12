@@ -1,0 +1,5 @@
+cix-ai-engine (1.0.0-1) trixie; urgency=medium
+
+  * Initial Debian 13 package for the CIX unified AI inference engine.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 16:10:00 +0800

@@ -1,0 +1,5 @@
+cix-libva (2.22.1+cix1-1) trixie; urgency=medium
+
+  * Package the CIX VA-API interface as a private userspace stack.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 12:30:00 +0800

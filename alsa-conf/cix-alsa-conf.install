@@ -1,0 +1,2 @@
+debian/package-files/usr/lib/cix-alsa-conf usr/lib
+debian/package-files/usr/share/alsa/ucm2 usr/share/alsa

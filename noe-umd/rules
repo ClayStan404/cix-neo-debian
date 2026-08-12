@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_install:
+	dh_install
+	python3 -m installer --destdir=debian/cix-noe-umd --prefix=/usr \
+		debian/cix-noe-umd/usr/share/cix/pypi/libnoe-*.whl
+
+override_dh_dwz override_dh_strip:
+
+override_dh_makeshlibs:
+	dh_makeshlibs -n

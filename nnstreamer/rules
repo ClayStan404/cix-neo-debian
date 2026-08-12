@@ -1,0 +1,49 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DPKG_EXPORT_BUILDFLAGS = 1
+include /usr/share/dpkg/buildflags.mk
+
+BUILD_DIR = obj-$(DEB_HOST_GNU_TYPE)
+STAGING_DIR = debian/tmp
+
+%:
+	dh $@ --with python3 --buildsystem=meson
+
+override_dh_auto_configure:
+	PKG_CONFIG_PATH=/usr/share/cix/lib/pkgconfig \
+	meson setup $(BUILD_DIR) \
+		--buildtype=plain \
+		--prefix=/usr/share/cix \
+		--sysconfdir=/etc \
+		--localstatedir=/var \
+		--libdir=lib \
+		--bindir=bin \
+		--includedir=include \
+		--wrap-mode=nodownload \
+		-Dauto_features=disabled \
+		-Dpython3-support=enabled \
+		-Denable-test=false \
+		-Dinstall-test=false
+
+override_dh_auto_install:
+	dh_auto_install --destdir=$(STAGING_DIR)
+	install -d $(STAGING_DIR)/usr/lib/python3/dist-packages
+	ln -s /usr/share/cix/lib/nnstreamer_python3.so \
+		$(STAGING_DIR)/usr/lib/python3/dist-packages/nnstreamer_python.so
+
+execute_after_dh_dwz:
+	find debian/cix-nnstreamer/usr/share/cix -type f -name '*.so' -print | \
+		while IFS= read -r file; do \
+			if readelf -h "$$file" >/dev/null 2>&1; then \
+				patchelf --set-rpath /usr/share/cix/lib "$$file"; \
+			fi; \
+		done
+
+override_dh_makeshlibs:
+	dh_makeshlibs -n
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l/usr/share/cix/lib

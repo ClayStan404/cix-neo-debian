@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+private_prefix = /opt/cixgpu-compat
+private_libdir = $(private_prefix)/lib/aarch64-linux-gnu
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=meson -- \
+		-Degl=enabled \
+		-Dgallium-drivers=zink,softpipe \
+		-Dgbm=enabled \
+		-Dglvnd=enabled \
+		-Dllvm=disabled \
+		-Dvulkan-drivers= \
+		--libdir=lib/aarch64-linux-gnu \
+		--prefix=$(private_prefix)
+
+override_dh_auto_install:
+	dh_auto_install --destdir=$(CURDIR)/debian/tmp
+	rm -rf -- $(CURDIR)/debian/tmp$(private_prefix)/include
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/cix-mesa$(private_libdir):$(CURDIR)/debian/cix-mesa$(private_libdir)/dri

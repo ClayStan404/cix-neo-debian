@@ -1,0 +1,17 @@
+Source: cix-env
+Section: admin
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-env
+Architecture: all
+Depends:
+ ${misc:Depends},
+ udev,
+Description: CIX system environment defaults
+ This package installs the graphics and multimedia environment used by the CIX
+ userspace stack, CIX module blacklists, and device permission rules.

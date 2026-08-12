@@ -1,0 +1,5 @@
+cix-firmware (1.0.0-1) trixie; urgency=medium
+
+  * Initial CIX Neo firmware package.
+
+ -- Clay Stan <claystan97@gmail.com>  Tue, 11 Aug 2026 10:25:00 +0800

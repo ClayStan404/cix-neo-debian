@@ -1,0 +1,6 @@
+# CIX keeps its private ABI and diagnostic tools under /usr/share/cix.
+cix-libdrm: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# The diagnostic tools are delivered without standalone manual pages.
+cix-libdrm: no-manual-page [usr/share/cix/bin/cix_test]
+cix-libdrm: no-manual-page [usr/share/cix/bin/modetest]
+cix-libdrm: initial-upload-closes-no-bugs

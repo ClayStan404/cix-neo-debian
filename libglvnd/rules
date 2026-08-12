@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+
+private_libdir = /opt/cixgpu-compat/lib/aarch64-linux-gnu
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=meson -- \
+		-Dglx=enabled \
+		-Dheaders=false \
+		-Dx11=enabled \
+		--libdir=$(private_libdir)
+
+override_dh_auto_test:
+	dh_auto_test --buildsystem=meson -- \
+		'gldispatch static' \
+		'gldispatch static thr' \
+		'gldispatch generated' \
+		'gldispatch generated end' \
+		'gldispatch generated thr' \
+		'gldispatch generated thr end' \
+		testgldispatchthread
+
+override_dh_auto_install:
+	dh_auto_install --destdir=$(CURDIR)/debian/tmp
+
+override_dh_makeshlibs:
+	dh_makeshlibs --no-scripts
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/cix-libglvnd$(private_libdir)

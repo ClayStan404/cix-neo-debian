@@ -1,0 +1,67 @@
+Description: Package CIX userspace kernel API headers separately
+ CIX multimedia sources require UAPI additions that are not present in the
+ Debian linux-libc-dev package. Build a dedicated cix-linux-libc-dev package
+ under a private include prefix so it can coexist with the distribution UAPI
+ headers in native and isolated builds.
+Forwarded: no
+Last-Update: 2026-08-11
+---
+diff --git a/scripts/package/mkdebian b/scripts/package/mkdebian
+index 5044224cf671..7b354da15f21 100755
+--- a/scripts/package/mkdebian
++++ b/scripts/package/mkdebian
+@@ -238,6 +238,15 @@ Description: Linux support headers for userspace development
+  are used by the installed headers for GNU glibc and other system libraries.
+ Multi-Arch: same
+ EOF
++
++cat <<EOF >> debian/control
++
++Package: cix-linux-libc-dev
++Section: devel
++Architecture: $debarch
++Description: CIX Linux support headers for userspace development
++ This package provides CIX kernel UAPI headers under a private include prefix.
++EOF
+ 
+ if is_enabled CONFIG_MODULES; then
+ cat <<EOF >> debian/control
+diff --git a/scripts/package/builddeb b/scripts/package/builddeb
+index d7dd0d04c70c..4bc5235a9e38 100755
+--- a/scripts/package/builddeb
++++ b/scripts/package/builddeb
+@@ -182,6 +182,16 @@ install_libc_headers () {
+ 	mv $pdir/usr/include/asm $pdir/usr/include/$host_arch/
+ }
+ 
++install_cix_libc_headers () {
++	pdir=$1
++
++	rm -rf $pdir
++
++	$MAKE -f $srctree/Makefile headers
++	$MAKE -f $srctree/Makefile headers_install \
++		INSTALL_HDR_PATH=$pdir/usr/share/cix/kernel-uapi
++}
++
+ rm -f debian/files
+ 
+ packages_enabled=$(dh_listpackages)
+@@ -198,6 +208,8 @@ do
+ 		install_linux_image debian/linux-image ${package};;
+ 	linux-libc-dev)
+ 		install_libc_headers debian/linux-libc-dev;;
++	cix-linux-libc-dev)
++		install_cix_libc_headers debian/cix-linux-libc-dev;;
+ 	linux-headers-*)
+ 		install_kernel_headers debian/linux-headers ${package#linux-headers-};;
+ 	esac
+@@ -212,6 +224,8 @@ do
+ 		create_package ${package} debian/linux-image;;
+ 	linux-libc-dev)
+ 		create_package ${package} debian/linux-libc-dev;;
++	cix-linux-libc-dev)
++		create_package ${package} debian/cix-linux-libc-dev;;
+ 	linux-headers-*)
+ 		create_package ${package} debian/linux-headers;;
+ 	esac

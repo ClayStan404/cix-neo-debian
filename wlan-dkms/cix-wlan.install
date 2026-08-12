@@ -1,0 +1,4 @@
+AIO/build usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}/AIO
+AIO/drivers usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}/AIO
+rtl-wlan usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}
+debian/wlan-build.mk usr/src/${env:DEB_SOURCE}-${env:DEB_VERSION_UPSTREAM}

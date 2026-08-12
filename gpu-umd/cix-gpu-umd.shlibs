@@ -1,0 +1,4 @@
+libEGL_cix 1 cix-gpu-umd (>= 2.0.0)
+libmali 0 cix-gpu-umd (>= 2.0.0)
+libOpenCL 1 cix-gpu-umd (>= 2.0.0)
+libgbm 1 cix-gpu-umd (>= 2.0.0)

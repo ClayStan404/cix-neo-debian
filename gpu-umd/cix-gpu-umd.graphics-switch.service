@@ -1,0 +1,12 @@
+[Unit]
+Description=Auto switch graphics configuration
+Documentation=https://developer.cixtech.com/
+Before=gdm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/cix/graphics-switch
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

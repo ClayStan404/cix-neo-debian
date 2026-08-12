@@ -1,0 +1,7 @@
+# CIX keeps its private ABI in /usr/share/cix.
+cix-npu-umd: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# The versioned archive is the upstream static library payload.
+cix-npu-umd: no-code-sections [usr/share/cix/lib/libaipudrv.a.6.2.0]
+# Released proprietary libraries must not be stripped.
+cix-npu-umd: unstripped-binary-or-object [usr/share/cix/lib/*]
+cix-npu-umd: initial-upload-closes-no-bugs

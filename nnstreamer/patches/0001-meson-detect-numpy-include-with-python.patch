@@ -1,0 +1,29 @@
+From: CIX Packaging <packaging@cixtech.com>
+Date: Tue, 11 Aug 2026 18:25:00 +0800
+Subject: meson: detect the NumPy include directory with Python
+
+NumPy 2 moved its public headers from numpy/core/include to
+numpy/_core/include.  Ask the installed NumPy module for its include
+directory so both NumPy 1 and NumPy 2 are supported.
+---
+ meson.build | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index 71fce22..52f1471 100644
+--- a/meson.build
++++ b/meson.build
+@@ -460,6 +460,11 @@ if not get_option('python3-support').disabled()
+     pg_pkgconfig = find_program('pkg-config')
+ 
+     python3_inc_args = []
++    r = run_command('python3', ['-c', 'import numpy; print("-I" + numpy.get_include())'], check : false)
++    if r.returncode() == 0
++      python3_inc_args += r.stdout().strip()
++    endif
++
+     python3_inc_args += run_command(pg_pkgconfig, ['python3', '--cflags'], check : true).stdout().strip().split()
+     python3_inc_args += run_command('python3', ['-c', 'import site\nfor i in site.getsitepackages(): print("-I" + i + "/numpy/core/include")'], check : true).stdout().strip().split()
+     r = run_command('python3', ['-m', 'site', '--user-site'], check : false)
+-- 
+2.47.2

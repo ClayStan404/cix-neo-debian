@@ -1,0 +1,61 @@
+Source: cix-gstreamer
+Section: libs
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ bison,
+ cix-noe-umd (>= 3.1.4),
+ cix-vpu-driver-dev (>= 1.0.1),
+ debhelper-compat (= 13),
+ flex,
+ libdrm-dev,
+ libegl-dev,
+ libfdk-aac-dev,
+ libgl-dev,
+ libgles-dev,
+ libglib2.0-dev,
+ libgraphene-1.0-dev,
+ libgstreamer-plugins-base1.0-dev,
+ libgstreamer1.0-dev,
+ libgudev-1.0-dev,
+ libgtk-3-dev,
+ liborc-0.4-dev,
+ libudev-dev,
+ libwayland-dev,
+ libx11-dev,
+ libx11-xcb-dev,
+ libxcb1-dev,
+ libxext-dev,
+ libxkbcommon-dev,
+ meson,
+ ninja-build,
+ patchelf,
+ pkgconf,
+ python3:any,
+ wayland-protocols,
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: cix-gstreamer
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cix-env,
+Description: CIX GStreamer runtime overlay
+ This package provides CIX GStreamer video, GL, Wayland, V4L2, KMS, AFBC,
+ FDK-AAC, and NOE super-resolution runtime components. They are installed in
+ the private CIX runtime path alongside Debian's GStreamer 1.26 runtime.
+
+Package: cix-gstreamer-dev
+Section: libdevel
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+ cix-gstreamer (= ${binary:Version}),
+ libgstreamer-plugins-base1.0-dev (>= 1.26.2),
+ libgstreamer1.0-dev (>= 1.26.2),
+Description: CIX GStreamer video development files
+ This package provides the private CIX GStreamer video headers, linker name,
+ and pkg-config metadata used to build CIX multimedia components without
+ replacing Debian's system GStreamer development files.

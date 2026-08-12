@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX ALSA UCM configuration
+Source: https://github.com/ClayStan404/cix-neo-debian
+
+Files: *
+Copyright: 2023-2026 Cix Technology Group Co., Ltd.
+License: CIX-proprietary
+ All rights reserved.

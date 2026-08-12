@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@ --buildsystem=meson
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem=meson -- \
+		-Damdgpu=false \
+		-Dcairo-tests=false \
+		-Dcix=true \
+		-Detnaviv=false \
+		-Dexynos=false \
+		-Dfreedreno=false \
+		-Dintel=false \
+		-Dlibkms=false \
+		-Dman-pages=false \
+		-Dnouveau=false \
+		-Domap=false \
+		-Dradeon=false \
+		-Dtegra=false \
+		-Dvalgrind=false \
+		-Dvc4=false \
+		-Dvmwgfx=false
+
+override_dh_auto_install:
+
+override_dh_makeshlibs:
+	dh_makeshlibs --no-scripts
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/cix-libdrm/usr/share/cix/lib:$(CURDIR)/debian/cix-libdrm/usr/share/cix/lib/dpu

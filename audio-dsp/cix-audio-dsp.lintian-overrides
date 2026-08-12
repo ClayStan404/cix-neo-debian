@@ -1,0 +1,12 @@
+# CIX keeps its private ABI in /usr/share/cix for the complete userspace stack.
+cix-audio-dsp: arch-dependent-file-in-usr-share [usr/share/cix/*]
+# These Xtensa binaries are loaded by the audio DSP, not executed by the host.
+cix-audio-dsp: binary-from-other-architecture [usr/lib/firmware/dsp_fw.bin]
+cix-audio-dsp: binary-from-other-architecture [usr/share/cix/lib/audio_codecs/*]
+cix-audio-dsp: shared-library-lacks-prerequisites [usr/share/cix/lib/audio_codecs/*]
+cix-audio-dsp: statically-linked-binary [usr/lib/firmware/dsp_fw.bin]
+# Released proprietary binaries must not be stripped during repackaging.
+cix-audio-dsp: unstripped-binary-or-object [usr/lib/firmware/dsp_fw.bin]
+cix-audio-dsp: unstripped-binary-or-object [usr/share/cix/lib/*]
+# This internal package is not uploaded through the Debian bug tracker.
+cix-audio-dsp: initial-upload-closes-no-bugs

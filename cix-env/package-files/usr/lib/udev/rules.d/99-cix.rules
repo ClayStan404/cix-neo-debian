@@ -1,0 +1,2 @@
+SUBSYSTEM=="rpmsg", MODE="0666"
+SUBSYSTEM=="remoteproc", KERNEL=="remoteproc*", RUN+="/usr/bin/chmod 0666 /sys%p/name /sys%p/state"

@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: CIX system environment defaults
+Source: https://github.com/ClayStan404/cix-neo-debian
+
+Files: *
+Copyright: 2024-2026 Cix Technology Group Co., Ltd.
+License: CIX-proprietary
+ All rights reserved.

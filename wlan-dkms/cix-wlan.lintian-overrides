@@ -1,0 +1,4 @@
+cix-wlan: initial-upload-closes-no-bugs
+cix-wlan: national-encoding [usr/src/cix-wlan-*/AIO/drivers/fw-api/hw/*]
+cix-wlan: national-encoding [usr/src/cix-wlan-*/AIO/drivers/qca-wifi-host-cmn/*]
+cix-wlan: national-encoding [usr/src/cix-wlan-*/rtl-wlan/*]
