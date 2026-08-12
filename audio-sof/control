@@ -1,0 +1,18 @@
+Source: cix-audio-sof
+Section: non-free-firmware/sound
+Priority: optional
+Maintainer: Clay Stan <claystan97@gmail.com>
+Build-Depends:
+ debhelper-compat (= 13),
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+Homepage: https://www.sofproject.org/
+
+Package: cix-audio-sof
+Architecture: all
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+Description: Sound Open Firmware for CIX Sky1 platforms
+ This package installs CIX Sound Open Firmware images, log dictionaries, and
+ ALSA topology files for Sky1 and Sky1P audio DSPs.

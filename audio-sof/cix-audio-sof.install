@@ -1,0 +1,2 @@
+firmware/* usr/lib/firmware/cix/sof/
+topology/* usr/lib/firmware/cix/sof-tplg/

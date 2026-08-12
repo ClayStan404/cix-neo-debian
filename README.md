@@ -32,6 +32,8 @@ The current packaging metadata is:
 - `audio-dsp/`, `dpu-ddk/`, `gpu-umd/`, `isp-umd/`, `noe-umd/`, and
   `npu-umd/`: external Debian metadata for manifest-managed proprietary
   userspace payloads.
+- `audio-sof/`: native Debian metadata used by the direct SOF flow to package
+  generated Sky1/Sky1P firmware, log dictionaries, and topology files.
 - `libdrm/`: external Debian metadata for the CIX libdrm extension library,
   private diagnostics, and development files.
 - `libva/`: external Debian metadata for the private CIX VA-API runtime and
