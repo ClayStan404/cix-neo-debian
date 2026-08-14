@@ -1,3 +1,9 @@
+cix-grub-config (1.1.5) trixie; urgency=medium
+
+  * Recognize stable vmlinuz-*-cix kernels and add the CIX 7.x boot arguments.
+
+ -- Clay Stan <claystan97@gmail.com>  Fri, 14 Aug 2026 16:05:34 +0800
+
 cix-grub-config (1.1.4) trixie; urgency=medium
 
   * Package the CIX GRUB policy as a native Debian source package.

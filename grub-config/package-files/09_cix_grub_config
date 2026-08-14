@@ -25,6 +25,7 @@ fi
 
 CLASS="--class cix --class gnu-linux --class gnu --class os"
 CIX_GENERIC_KERNEL_GLOB="vmlinuz-*-generic"
+CIX_STABLE_KERNEL_GLOB="vmlinuz-*-cix"
 CIX_GRUB_TARGET_CMDLINE_COMMON="acpi=force"
 
 case ${GRUB_DEVICE} in
@@ -63,7 +64,10 @@ case "${GRUB_FS}" in
 esac
 
 target_kernel=$(
-    find /boot -maxdepth 1 -type f -name "${CIX_GENERIC_KERNEL_GLOB}" -printf '%p\n' 2>/dev/null \
+    find /boot -maxdepth 1 -type f \
+        \( -name "${CIX_GENERIC_KERNEL_GLOB}" \
+        -o -name "${CIX_STABLE_KERNEL_GLOB}" \) \
+        -printf '%p\n' 2>/dev/null \
         | awk '$0 !~ /-rc[0-9]+-/' \
         | sort -V \
         | tail -n 1
@@ -115,7 +119,7 @@ case "${basename}" in
     *-cix-build-generic)
         cix_grub_target_cmdline_extra="${CIX_GRUB_TARGET_CMDLINE_COMMON}"
     ;;
-    *-generic)
+    *-cix|*-generic)
         cix_grub_target_cmdline_extra="${CIX_GRUB_TARGET_CMDLINE_COMMON} clk_ignore_unused"
     ;;
     *)
