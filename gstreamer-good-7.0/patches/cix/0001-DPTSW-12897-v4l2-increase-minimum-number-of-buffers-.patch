@@ -1,0 +1,30 @@
+From 0b77d85927d54ce7ca7d69a5ffd3c30409a479d5 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 22 Oct 2024 19:57:18 +0800
+Subject: [PATCH] DPTSW-12897: v4l2: increase minimum number of buffers to 6
+
+Number of buffers 2 may be not enough for best performance with
+bi-directional prediction bitstreams. Increase it to 6, for both output
+and capture buffers to unleash best performance of VPU.
+
+Change-Id: Ic4a6bdf87fad5622ee5f295799a8c5db0edddf9f
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index ed8eff5798..fc602601ba 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -46,12 +46,7 @@ typedef struct _GstV4l2ObjectClassHelper GstV4l2ObjectClassHelper;
+ 
+ /* size of v4l2 buffer pool in streaming case, obj->info needs to be valid */
+ #define GST_V4L2_MIN_BUFFERS(obj) \
+-    (obj->info.size > GST_V4L2_LARGE_BUFFER ? \
+-      1 : \
+-      ((GST_VIDEO_INFO_INTERLACE_MODE (&obj->info.vinfo) == \
+-      GST_VIDEO_INTERLACE_MODE_ALTERNATE) ? \
+-      /* 2x buffers needed with each field in its own buffer */ \
+-      4 : 2))
++    (obj->info.vinfo.size > GST_V4L2_LARGE_BUFFER ? 1 : 6)
+ 
+ /* max frame width/height */
+ #define GST_V4L2_MAX_SIZE (1<<15) /* 2^15 == 32768 */

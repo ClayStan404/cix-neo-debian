@@ -1,0 +1,52 @@
+From 55aefa35e241e10a18b1c0a33e55a7a67d1125c8 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 6 Sep 2024 10:38:12 +0800
+Subject: [PATCH] DPTSW-11645: v4l2: add BT2020-10 colorimetry
+
+Add BT2020-10 colorimetry to decoder sink caps so the plug-in can accept
+such bitstreams.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Ia50b2a78c6f8adc9dc315256843903e278e66e2a
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 4feb288a77..0be9d0f522 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2592,6 +2592,7 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+   enum v4l2_xfer_func transfer = 0;
+   const gchar *hdr_cnames[] = {
+     GST_VIDEO_COLORIMETRY_BT2100_PQ,
++    GST_VIDEO_COLORIMETRY_BT2020_10,
+     NULL
+   };
+   gint i = 0;
+@@ -2619,6 +2620,10 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+ 
+     if (cinfo.transfer == GST_VIDEO_TRANSFER_SMPTE2084) {
+       transfer = V4L2_XFER_FUNC_SMPTE2084;
++    } else if (cinfo.transfer == GST_VIDEO_TRANSFER_BT2020_10) {
++      /* BT2020 10bit transfer function is not defined in V4L2.
++       * Use BT709 instead, which is equivalent. */
++      transfer = V4L2_XFER_FUNC_709;
+     } else {
+       GST_WARNING_OBJECT (v4l2object->dbg_obj,
+           "Colorimetry transfer %d is not expected for %s", cinfo.transfer,
+@@ -2641,9 +2646,15 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+     }
+ 
+     if (gst_v4l2_object_try_fmt (v4l2object, fmt) == 0) {
+-      if (gst_v4l2_object_get_colorspace (v4l2object, fmt, &ret_cinfo))
+-        if (gst_video_colorimetry_is_equal (&cinfo, &ret_cinfo))
++      if (gst_v4l2_object_get_colorspace (v4l2object, fmt, &ret_cinfo)) {
++        /* Keep the original transfer if they are functionally the same */
++        if (cinfo.transfer == GST_VIDEO_TRANSFER_BT2020_10 &&
++            ret_cinfo.transfer == GST_VIDEO_TRANSFER_BT2020_12)
++          ret_cinfo.transfer = cinfo.transfer;
++        if (gst_video_colorimetry_is_equal (&cinfo, &ret_cinfo)) {
+           gst_v4l2_object_fill_colorimetry_list (list, &cinfo);
++        }
++      }
+     }
+ 
+     i++;

@@ -1,0 +1,25 @@
+From 86ad146bfd420e3ac231871bdcda0728859b2450 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 5 Feb 2026 09:34:41 +0800
+Subject: [PATCH] DPTSW-23055: video: allow non-linear DRM format modifiers
+
+gst_video_dma_drm_format_from_gst_format() may return non-linear modifier
+now, so gst_video_dma_drm_fourcc_from_format() should allow such
+modifiers and just check DRM_FORMAT_MOD_INVALID.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I26094a03372804b12366c4a000b57d201318c4b2
+
+diff --git a/gst-libs/gst/video/video-info-dma.c b/gst-libs/gst/video/video-info-dma.c
+index 1f89595c16..bdc082fc20 100644
+--- a/gst-libs/gst/video/video-info-dma.c
++++ b/gst-libs/gst/video/video-info-dma.c
+@@ -611,7 +611,7 @@ gst_video_dma_drm_fourcc_from_format (GstVideoFormat format)
+   if (fourcc == DRM_FORMAT_INVALID)
+     return DRM_FORMAT_INVALID;
+ 
+-  if (modifier != DRM_FORMAT_MOD_LINEAR)
++  if (modifier == DRM_FORMAT_MOD_INVALID)
+     return DRM_FORMAT_INVALID;
+ 
+   return fourcc;

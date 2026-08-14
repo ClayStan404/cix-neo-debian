@@ -1,0 +1,51 @@
+From 582a707990eb717c37960f226b56b9796ee02230 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 4 Aug 2025 14:41:05 +0800
+Subject: [PATCH] DPTSW-19191: v4l2: add more colorimetry
+
+Add following colorimetry for ffmpeg generated videos and USB camera
+streams.
+  - 2:0:0:0
+  - 2:4:5:1
+
+Change-Id: I3ed04550a25ee2b623a640970d554b61b65e5e5a
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 351112dcb9..db1a1d2136 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2682,6 +2682,25 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+   }
+ }
+ 
++static void
++gst_v4l2_object_add_misc_colorimetry (GstV4l2Object * v4l2object,
++    struct v4l2_format *fmt, GValue * list)
++{
++  GstVideoColorimetry cinfo;
++  const gchar *cnames[] = {
++    "2:0:0:0",                  /* used by some ffmpeg generated videos */
++    "2:4:5:1",                  /* used by some USB cameras */
++    NULL
++  };
++  gint i = 0;
++
++  while (cnames[i] != NULL) {
++    gst_video_colorimetry_from_string (&cinfo, cnames[i]);
++    gst_v4l2_object_fill_colorimetry_list (list, &cinfo);
++    i++;
++  }
++}
++
+ static void
+ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+     guint32 width, guint32 height, guint32 pixelformat)
+@@ -2756,6 +2775,7 @@ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+   }
+ 
+   gst_v4l2_object_add_hdr_colorimetry (v4l2object, &fmt, &list);
++  gst_v4l2_object_add_misc_colorimetry (v4l2object, &fmt, &list);
+ 
+   if (gst_value_list_get_size (&list) > 0)
+     gst_structure_take_value (s, "colorimetry", &list);

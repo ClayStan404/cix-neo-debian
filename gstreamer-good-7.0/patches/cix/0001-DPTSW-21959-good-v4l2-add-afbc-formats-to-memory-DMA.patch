@@ -1,0 +1,58 @@
+From f448b9a75b521bc80ea66a04de23af68555bc58a Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 26 Dec 2025 11:10:11 +0800
+Subject: [PATCH] DPTSW-21959: good: v4l2: add afbc formats to memory:DMABuf
+ caps
+
+Add YUV420_AFBC_8, YUV420_AFBC_10 and YUV422_AFBC_8 to memory:DMABuf
+caps. drm-format of video/x-raw(memory:DMABuf) shows follow formats now.
+  - (string)YU08:0x0800000000000001
+  - (string)YU10:0x0800000000000001
+  - (string)YU16:0x0800000000000001
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I36e72258884e51d08215df653844685aaa36b493
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 68196b0301..f50a0be1f3 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -177,7 +177,6 @@ static GstV4L2FormatDesc gst_v4l2_formats[] = {
+   {MAP_FMT (YUV420_AFBC_8, YUV420_AFBC_8),   KNOWN_DRM_MAP, GST_V4L2_RAW},
+   {MAP_FMT (YUV420_AFBC_10, YUV420_AFBC_10), KNOWN_DRM_MAP, GST_V4L2_RAW},
+   {MAP_FMT (YUV422_AFBC_8, YUV422_AFBC_8),   KNOWN_DRM_MAP, GST_V4L2_RAW},
+-  {MAP_FMT (YUV422_AFBC_10, YUV422_AFBC_10), KNOWN_DRM_MAP, GST_V4L2_RAW},
+ 
+   /* two planes -- one Y,         one Cr + Cb interleaved  */
+   {MAP_FMT (NV12M, NV12),                       KNOWN_DRM_MAP,                      GST_V4L2_RAW},
+@@ -3741,7 +3740,8 @@ gst_v4l2_object_save_format (GstV4l2Object * v4l2object,
+         "Driver bug detected, stride (%d) is too small for the width (%d)",
+         padded_width, format->fmt.pix.width);
+ 
+-  align->padding_right = padded_width - info->vinfo.width - align->padding_left;
++  if (padded_width > (info->vinfo.width + align->padding_left))
++    align->padding_right = padded_width - info->vinfo.width - align->padding_left;
+ 
+   /* adjust bottom padding */
+   padded_height = format->fmt.pix.height;
+@@ -3805,7 +3805,7 @@ gst_v4l2_object_save_format (GstV4l2Object * v4l2object,
+       GST_WARNING_OBJECT (v4l2object->dbg_obj,
+           "Left and top padding is not permitted for tiled formats");
+     memset (v4l2object->plane_size, 0, sizeof (v4l2object->plane_size));
+-  } else {
++  } else if (!GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo)) {
+     if (!gst_video_info_align_full (&info->vinfo, align,
+             v4l2object->plane_size)) {
+       GST_WARNING_OBJECT (v4l2object->dbg_obj, "Failed to align video info");
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 06823b4134..536d133584 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -678,7 +678,6 @@ use_acquired_caps:
+     GST_DEBUG_OBJECT (self, "Negotiated format is %s which is different "
+         "from the aquired format %s. Try to re-negotiated using %s\n",
+         info.vinfo.finfo->name, finfo->name, info.vinfo.finfo->name);
+-    GST_V4L2_SET_INACTIVE (self->v4l2capture);
+     goto re_negotiate;
+   }
+ 

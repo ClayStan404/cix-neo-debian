@@ -1,0 +1,142 @@
+From 3bbd5a5dc852dae0672f90001bc2d3f77360668e Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 9 Feb 2026 17:20:50 +0800
+Subject: [PATCH] DPTSW-23055: gl: set crop when create egl image
+
+- Modify gsteglimage.c to set crop information when creating EGL images
+- Update gsteglimage.h with new functionality
+- Adjust gstgldmabufbufferpool.c for crop handling
+- Update gstglupload.c to handle crop when creating EGL images
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I35c4b488c9e4a86df139279b4fe6a7ae315e5369
+
+diff --git a/ext/gl/gstgldmabufbufferpool.c b/ext/gl/gstgldmabufbufferpool.c
+index 4718dca777..28f73a7004 100644
+--- a/ext/gl/gstgldmabufbufferpool.c
++++ b/ext/gl/gstgldmabufbufferpool.c
+@@ -319,7 +319,7 @@ gst_gl_dmabuf_buffer_pool_acquire_buffer (GstBufferPool * pool,
+       int fd = gst_dmabuf_memory_get_fd (dmabufmem);
+       data.eglimage[i] =
+           gst_egl_image_from_dmabuf_direct_target_with_dma_drm (glpool->context,
+-          1, &fd, &skip, &self->priv->drm_info, GL_TEXTURE_2D);
++          1, &fd, &skip, NULL, &self->priv->drm_info, GL_TEXTURE_2D);
+     }
+ 
+     gst_egl_image_cache_store (self->priv->eglimage_cache, dmabufmem, i,
+diff --git a/gst-libs/gst/gl/egl/gsteglimage.c b/gst-libs/gst/gl/egl/gsteglimage.c
+index cb8d43f7c7..ee0ee4ea08 100644
+--- a/gst-libs/gst/gl/egl/gsteglimage.c
++++ b/gst-libs/gst/gl/egl/gsteglimage.c
+@@ -177,6 +177,14 @@
+ #define EGL_DMA_BUF_PLANE2_MODIFIER_HI_EXT 0x3448
+ #endif
+ 
++#ifndef EGL_ANDROID_image_crop
++#define EGL_ANDROID_image_crop 1
++#define EGL_IMAGE_CROP_LEFT_ANDROID   0x3148
++#define EGL_IMAGE_CROP_TOP_ANDROID    0x3149
++#define EGL_IMAGE_CROP_RIGHT_ANDROID  0x314A
++#define EGL_IMAGE_CROP_BOTTOM_ANDROID 0x314B
++#endif /* EGL_ANDROID_image_crop */
++
+ #ifndef EGL_ITU_REC601_EXT
+ #define EGL_ITU_REC601_EXT 0x327F
+ #endif
+@@ -826,7 +834,7 @@ gst_egl_image_from_dmabuf_direct_target (GstGLContext * context,
+     return NULL;
+ 
+   return gst_egl_image_from_dmabuf_direct_target_with_dma_drm (context,
+-      GST_VIDEO_INFO_N_PLANES (in_info), fd, offset, &in_info_dma, target);
++      GST_VIDEO_INFO_N_PLANES (in_info), fd, offset, NULL, &in_info_dma, target);
+ }
+ 
+ /**
+@@ -835,6 +843,7 @@ gst_egl_image_from_dmabuf_direct_target (GstGLContext * context,
+  * @n_planes: number of planes (obtained from a #GstVideoMeta)
+  * @fd: Array of DMABuf file descriptors
+  * @offset: Array of offsets, relative to the DMABuf
++ * @crop: the #GstVideoCropMeta (or %NULL)
+  * @in_info_dma: the #GstVideoInfoDmaDrm
+  * @target: GL texture target this GstEGLImage is intended for
+  *
+@@ -851,7 +860,7 @@ gst_egl_image_from_dmabuf_direct_target (GstGLContext * context,
+  */
+ GstEGLImage *
+ gst_egl_image_from_dmabuf_direct_target_with_dma_drm (GstGLContext * context,
+-    guint n_planes, gint * fd, const gsize * offset,
++    guint n_planes, gint * fd, const gsize * offset, const GstVideoCropMeta * crop,
+     const GstVideoInfoDmaDrm * in_info_dma, GstGLTextureTarget target)
+ {
+   EGLImageKHR img;
+@@ -859,7 +868,7 @@ gst_egl_image_from_dmabuf_direct_target_with_dma_drm (GstGLContext * context,
+   guint32 fourcc;
+   guint64 modifier;
+   gint i;
+-  gboolean with_modifiers;
++  gboolean with_modifiers, with_crop;
+ 
+   /* Explanation of array length:
+    * - 6 plane independent values are at the start (width, height, format FourCC)
+@@ -941,6 +950,20 @@ gst_egl_image_from_dmabuf_direct_target_with_dma_drm (GstGLContext * context,
+     }
+   }
+ 
++  /* crop info */
++  with_crop = gst_gl_context_check_feature (context,
++      "EGL_CIX_image_crop");
++  if (with_crop && crop && (crop->x > 0 || crop->y > 0)) {
++    attribs[atti++] = EGL_IMAGE_CROP_LEFT_ANDROID;
++    attribs[atti++] = crop->x;
++    attribs[atti++] = EGL_IMAGE_CROP_TOP_ANDROID;
++    attribs[atti++] = crop->y;
++    attribs[atti++] = EGL_IMAGE_CROP_RIGHT_ANDROID;
++    attribs[atti++] = crop->width;
++    attribs[atti++] = EGL_IMAGE_CROP_BOTTOM_ANDROID;
++    attribs[atti++] = crop->height;
++  }
++
+   {
+     uint32_t color_space;
+     switch (in_info->colorimetry.matrix) {
+diff --git a/gst-libs/gst/gl/egl/gsteglimage.h b/gst-libs/gst/gl/egl/gsteglimage.h
+index c69d65a768..df130d3aac 100644
+--- a/gst-libs/gst/gl/egl/gsteglimage.h
++++ b/gst-libs/gst/gl/egl/gsteglimage.h
+@@ -107,6 +107,7 @@ GstEGLImage *           gst_egl_image_from_dmabuf_direct_target_with_dma_drm
+                                                                  guint n_planes,
+                                                                  gint * fd,
+                                                                  const gsize * offset,
++                                                                 const GstVideoCropMeta *crop,
+                                                                  const GstVideoInfoDmaDrm * in_info_dma,
+                                                                  GstGLTextureTarget target);
+ GST_GL_API
+diff --git a/gst-libs/gst/gl/gstglupload.c b/gst-libs/gst/gl/gstglupload.c
+index 9527bfd38e..cb35cc645d 100644
+--- a/gst-libs/gst/gl/gstglupload.c
++++ b/gst-libs/gst/gl/gstglupload.c
+@@ -1109,6 +1109,7 @@ _dma_buf_upload_accept (gpointer impl, GstBuffer * buffer, GstCaps * in_caps,
+   GstVideoInfo *out_info = &dmabuf->out_info;
+   guint n_planes;
+   GstVideoMeta *meta;
++  GstVideoCropMeta *crop;
+   guint n_mem;
+   GstMemory *mems[GST_VIDEO_MAX_PLANES];
+   GstMemory *previous_mem = NULL;
+@@ -1119,6 +1120,7 @@ _dma_buf_upload_accept (gpointer impl, GstBuffer * buffer, GstCaps * in_caps,
+ 
+   n_mem = gst_buffer_n_memory (buffer);
+   meta = gst_buffer_get_video_meta (buffer);
++  crop = gst_buffer_get_video_crop_meta (buffer);
+ 
+   if (!dmabuf->upload->context->gl_vtable->EGLImageTargetTexture2D)
+     return FALSE;
+@@ -1287,7 +1289,7 @@ _dma_buf_upload_accept (gpointer impl, GstBuffer * buffer, GstCaps * in_caps,
+     /* otherwise create one and cache it */
+     if (dmabuf->direct) {
+       dmabuf->eglimage[i] = gst_egl_image_from_dmabuf_direct_target_with_dma_drm
+-          (dmabuf->upload->context, n_planes, fd, offset, in_info_drm,
++          (dmabuf->upload->context, n_planes, fd, offset, crop, in_info_drm,
+           dmabuf->target);
+     } else {
+       dmabuf->eglimage[i] = gst_egl_image_from_dmabuf

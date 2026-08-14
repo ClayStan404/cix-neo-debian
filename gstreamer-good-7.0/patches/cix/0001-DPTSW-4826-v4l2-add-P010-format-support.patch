@@ -1,0 +1,43 @@
+From 592350e073700454d6b6317b755d77f79b77947c Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 4 Jul 2023 09:58:27 +0800
+Subject: [PATCH] DPTSW-4826: v4l2: add P010 format support
+
+Add P010 format support for video encoder and decoder plug-ins. The
+custom v4l2 fourcc 'M010' and 'Y0P1' are used for non-contiguous P010
+and contiguous P010 respectively.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I73aa5e5865106c7813e243c21745ae96493aa176
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 1bc79409f9..2961c29754 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -39,6 +39,7 @@
+ #include "gstv4l2object.h"
+ #include "gstv4l2tuner.h"
+ #include "gstv4l2colorbalance.h"
++#include "mvx-v4l2-controls.h"
+ 
+ #include <glib/gi18n-lib.h>
+ 
+@@ -191,6 +192,7 @@ static GstV4L2FormatDesc gst_v4l2_formats[] = {
+   {MAP_FMT (NV24, NV24),                        KNOWN_DRM_MAP,                      GST_V4L2_RAW},
+   {MAP_FMT (NV42, UNKNOWN),                     MAP_DRM (NV42, LINEAR),             GST_V4L2_RAW},
+   {MAP_FMT (MM21, NV12_16L32S),                 KNOWN_DRM_MAP,                      GST_V4L2_RAW},
++  {MAP_FMT (P010M, P010_10LE),                  KNOWN_DRM_MAP,                      GST_V4L2_RAW},
+   {MAP_FMT (P010, P010_10LE),                   KNOWN_DRM_MAP,                      GST_V4L2_RAW},
+ 
+   /* Bayer formats - see http://www.siliconimaging.com/RGB%20Bayer.htm */
+@@ -1208,6 +1210,10 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
+     case V4L2_PIX_FMT_YUV422M:
+       rank = YUV_BASE_RANK + 8;
+       break;
++    case V4L2_PIX_FMT_P010:    /* P010, 15 bits per pixel */
++    case V4L2_PIX_FMT_P010M:   /* Same as P010            */
++      rank = YUV_BASE_RANK + 8;
++      break;
+ 
+     case V4L2_PIX_FMT_DV:
+       rank = DV_BASE_RANK;

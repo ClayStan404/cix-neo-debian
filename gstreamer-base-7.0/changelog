@@ -1,0 +1,14 @@
+gst-plugins-base1.0 (1.26.2-1+deb13u1+cix7.0.1) trixie; urgency=medium
+
+  * Add the CIX AFBC video formats, DMA format mappings, and GL import support
+    required by the Linux 7.0 VPU stack.
+  * Advertise AFBC as passthrough-only and keep linear conversion tests valid.
+  * Retain the Debian 13 CVE-2026-2921 security fix.
+
+ -- Clay Stan <claystan97@gmail.com>  Fri, 14 Aug 2026 17:05:19 +0800
+
+gst-plugins-base1.0 (1.26.2-1+deb13u1) trixie-security; urgency=medium
+
+  * CVE-2026-2921
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Sat, 14 Mar 2026 22:51:46 +0100

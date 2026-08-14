@@ -1,0 +1,90 @@
+From 20a88cc7c1df622edaba54dfd191d60181760adc Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 17 Feb 2025 15:40:55 +0800
+Subject: [PATCH] DPTSW-13177: v4l2: use gcond to check decoding status
+
+Use GCond to check decoding status before sending V4L2_DEC_CMD_STOP to
+decoder. It ensures that decoding is started and sending events to
+gstreamer, so it should be safe to send STOP command. Otherwise, VPU
+firmware could be stopped early before output the first frame, which is
+not expected behavior.
+
+Previous fix of checking capture_configuration_change flag is not safe
+and V4L2_DEC_CMD_STOP could be missed in the end of decoding.
+
+Change-Id: I6d752247553e8b07b8008a6b5ec04db3c68e2d93
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 70ca57fca9..247db36a67 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -730,8 +730,12 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
+   /* If we are in the middle of a source change, cancel it */
+   self->draining = FALSE;
+ 
+-  if (g_atomic_int_get (&self->capture_configuration_change) &&
+-      gst_v4l2_decoder_cmd (self->v4l2output, V4L2_DEC_CMD_STOP, 0)) {
++  g_mutex_lock (&self->decoding_lock);
++  while (!self->decoding)
++    g_cond_wait (&self->decoding_cond, &self->decoding_lock);
++  g_mutex_unlock (&self->decoding_lock);
++
++  if (gst_v4l2_decoder_cmd (self->v4l2output, V4L2_DEC_CMD_STOP, 0)) {
+     GstTask *task;
+ 
+     GST_OBJECT_LOCK (decoder->srcpad);
+@@ -946,6 +950,8 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
+       ret = gst_v4l2_buffer_pool_process (cpool, &buffer, NULL);
+       if (cpool)
+         gst_object_unref (cpool);
++      self->decoding = TRUE;
++      g_cond_signal (&self->decoding_cond);
+     }
+   } while (ret == GST_V4L2_FLOW_CORRUPTED_BUFFER);
+ 
+@@ -1029,6 +1035,8 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
+ 
+ beach:
+   if (ret == GST_V4L2_FLOW_RESOLUTION_CHANGE) {
++    self->decoding = TRUE;
++    g_cond_signal (&self->decoding_cond);
+     GST_VIDEO_DECODER_STREAM_LOCK (decoder);
+     self->draining = TRUE;
+     GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
+@@ -1433,6 +1441,10 @@ gst_v4l2_video_dec_finalize (GObject * object)
+   gst_v4l2_object_destroy (self->v4l2output);
+ 
+   G_OBJECT_CLASS (parent_class)->finalize (object);
++
++  g_mutex_clear (&self->decoding_lock);
++  g_cond_clear (&self->decoding_cond);
++  self->decoding = FALSE;
+ }
+ 
+ static void
+@@ -1461,6 +1473,10 @@ gst_v4l2_video_dec_subinstance_init (GTypeInstance * instance, gpointer g_class)
+       GST_OBJECT (GST_VIDEO_DECODER_SRC_PAD (self)),
+       V4L2_BUF_TYPE_VIDEO_CAPTURE, klass->default_device,
+       gst_v4l2_get_input, gst_v4l2_set_input, NULL);
++
++  g_mutex_init (&self->decoding_lock);
++  g_cond_init (&self->decoding_cond);
++  self->decoding = FALSE;
+ }
+ 
+ static void
+diff --git a/sys/v4l2/gstv4l2videodec.h b/sys/v4l2/gstv4l2videodec.h
+index fbbfb60b01..ea92ecddc9 100644
+--- a/sys/v4l2/gstv4l2videodec.h
++++ b/sys/v4l2/gstv4l2videodec.h
+@@ -62,6 +62,9 @@ struct _GstV4l2VideoDec
+   GstVideoCodecState *input_state;
+   gboolean active;
+   GstFlowReturn output_flow;
++  GMutex decoding_lock;
++  GCond decoding_cond;
++  gboolean decoding;
+ 
+   /* Source Change Events */
+   gboolean wait_for_source_change;

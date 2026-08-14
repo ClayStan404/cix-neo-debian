@@ -1,0 +1,27 @@
+From f4c3ba014871e75eb5410bc4e69a725f8a6427da Mon Sep 17 00:00:00 2001
+From: "shijie.qin" <shijie.qin@cixtech.com>
+Date: Tue, 1 Oct 2024 14:39:19 +0800
+Subject: [PATCH] DPTSW-11886: v4l2: use crop's width and height to set video
+ info
+
+For AFBC decode, the format's height may added top offset,
+that may cause failed to negotiate with sink node which
+expect vaild dimension, hence, here we should use the crop's
+width and height.
+
+Signed-off-by: shijie.qin <shijie.qin@cixtech.com>
+Change-Id: I3270dae57c4c9d1b984fe91cc2bf9cd213a5cdb5
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 4645f019e7..ea8781dbf3 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -5034,6 +5034,8 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+     align.padding_top = r->top;
+     align.padding_right = width - r->width - r->left;
+     align.padding_bottom = height - r->height - r->top;
++    width = r->width;
++    height = r->height;
+   }
+ 
+   switch (fmt.fmt.pix.field) {

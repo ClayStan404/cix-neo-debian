@@ -1,0 +1,36 @@
+From 2077dd044762d603c567c39ad7945ed096a3a3f1 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 5 Dec 2025 14:40:06 +0800
+Subject: [PATCH] DPTSW-21363: v4l2: use mmap mode for jpeg output
+
+Create buffer pool in GST_V4L2_IO_MMAP mode instead of
+GST_V4L2_IO_DMABUF mode by default for JPEG encode output.
+
+Problem:
+If use GST_V4L2_IO_DMABUF, after buffer pool will be created with dmabuf
+allocator (GST_TYPE_DMABUF_ALLOCATOR). Later on, when the dmabuf buffer
+is sent to jif muxter and calls into gst_jif_mux_parse_image(), the
+buffer is mapped and parsed, and the some marker objects will be created
+which point to the buffer. The buffer is unmapped before exit this
+function, and pointer becomes invalid. Later on, these markers will be
+used in gst_jif_mux_mangle_markers(), and invalid pointer is referenced.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I5201449eefbe54bbfdb931312a979f554baf1c66
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 3815963825..68196b0301 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -3541,7 +3541,10 @@ gst_v4l2_object_setup_pool (GstV4l2Object * v4l2object, GstCaps * caps)
+     if (v4l2object->req_mode == GST_V4L2_IO_AUTO) {
+       if (!V4L2_TYPE_IS_OUTPUT (v4l2object->type) &&
+           gst_v4l2_object_is_dmabuf_supported (v4l2object)) {
+-        mode = GST_V4L2_IO_DMABUF;
++        if (v4l2object->fmtdesc->pixelformat == V4L2_PIX_FMT_JPEG)
++          mode = GST_V4L2_IO_MMAP;
++        else
++          mode = GST_V4L2_IO_DMABUF;
+       } else {
+         mode = GST_V4L2_IO_MMAP;
+       }

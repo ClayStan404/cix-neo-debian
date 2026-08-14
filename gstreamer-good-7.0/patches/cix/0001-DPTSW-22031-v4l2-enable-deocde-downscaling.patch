@@ -1,0 +1,422 @@
+From cf0c38d2ead14bdadb5ca9a7a968dc3d428a94a7 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Wed, 31 Dec 2025 17:07:56 +0800
+Subject: [PATCH] DPTSW-22031: v4l2: enable deocde downscaling
+
+When downscaling requirement is detected, try src pad caps negotiation
+early before v4l2 output port is streamon, so that the downscaled
+resolution can be sent to VPU firmware. VPU accepts downscale related
+parameters at the very beginning only.
+
+In this case, the 1st round of caps negotiation sets format for capture
+port only but not configure other parameters,
+gst_v4l2_object_set_format() must be called in the 2nd round of caps
+negotiation which is after SOURCE_CHANGE event.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I174c19c30aaa60c3527c7f70f5a6e93517af92fa
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index f50a0be1f3..db6fe67462 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -4887,53 +4887,25 @@ pool_failed:
+   }
+ }
+ 
+-gboolean
+-gst_v4l2_object_update_format (GstV4l2Object * v4l2object, GstCaps * caps,
++static gboolean
++gst_v4l2_object_update_format (GstV4l2Object * v4l2object, const GstV4L2FormatDesc * desc,
+     GstV4l2Error * error)
+ {
+   gint fd = v4l2object->video_fd;
+   struct v4l2_format format;
+   guint32 pixelformat;
+-  struct v4l2_fmtdesc *fmtdesc;
+-  GstVideoInfoDmaDrm info;
+-  GstVideoAlignment align;
+-  gint width, height;
+-  gboolean is_mplane;
+-
+-  GST_DEBUG_OBJECT (v4l2object->dbg_obj, "Updating format to %" GST_PTR_FORMAT,
+-      caps);
+-
+-  g_return_val_if_fail (!v4l2object->skip_try_fmt_probes ||
+-      gst_caps_is_writable (caps), FALSE);
+ 
+   GST_V4L2_CHECK_OPEN (v4l2object);
+   GST_V4L2_CHECK_NOT_ACTIVE (v4l2object);
+ 
+-  is_mplane = V4L2_TYPE_IS_MULTIPLANAR (v4l2object->type);
+-
+-  gst_video_info_dma_drm_init (&info);
+-  gst_video_alignment_reset (&align);
+-  v4l2object->transfer = GST_VIDEO_TRANSFER_UNKNOWN;
+-
+-  if (!gst_v4l2_object_get_caps_info (v4l2object, caps, &fmtdesc, &info))
+-    goto invalid_caps;
+-
+-  width = GST_VIDEO_INFO_WIDTH (&info.vinfo);
+-  height = GST_VIDEO_INFO_FIELD_HEIGHT (&info.vinfo);
+-  /* if caps has no width and height info, use default value */
+-  if (V4L2_TYPE_IS_OUTPUT (v4l2object->type) && width == 0 && height == 0) {
+-    width = GST_V4L2_DEFAULT_WIDTH;
+-    height = GST_V4L2_DEFAULT_HEIGHT;
+-  }
+-
+-  pixelformat = fmtdesc->pixelformat;
++  pixelformat = desc->v4l2_format;
+   memset (&format, 0x00, sizeof (struct v4l2_format));
+   format.type = v4l2object->type;
+ 
+   if (v4l2object->ioctl (fd, VIDIOC_G_FMT, &format) < 0)
+     goto get_fmt_failed;
+ 
+-  if (is_mplane) {
++  if (V4L2_TYPE_IS_MULTIPLANAR (v4l2object->type)) {
+     format.fmt.pix_mp.pixelformat = pixelformat;
+   } else {
+     format.fmt.pix.pixelformat = pixelformat;
+@@ -4948,15 +4920,6 @@ gst_v4l2_object_update_format (GstV4l2Object * v4l2object, GstCaps * caps,
+   return TRUE;
+ 
+   /* ERRORS */
+-invalid_caps:
+-  {
+-    GST_DEBUG_OBJECT (v4l2object->dbg_obj, "can't parse caps %" GST_PTR_FORMAT,
+-        caps);
+-
+-    GST_V4L2_ERROR (error, RESOURCE, SETTINGS,
+-        (_("Invalid caps")), ("Can't parse caps %" GST_PTR_FORMAT, caps));
+-    return FALSE;
+-  }
+ get_fmt_failed:
+   {
+     GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
+@@ -4968,22 +4931,19 @@ set_fmt_failed:
+     if (errno == EBUSY) {
+       GST_V4L2_ERROR (error, RESOURCE, BUSY,
+           (_("Device '%s' is busy"), v4l2object->videodev),
+-          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
+-              GST_FOURCC_ARGS (pixelformat), width, height,
+-              g_strerror (errno)));
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT ": %s",
++              GST_FOURCC_ARGS (pixelformat), g_strerror (errno)));
+     } else if (errno == EINVAL) {
+       GST_V4L2_ERROR (error, RESOURCE, SETTINGS,
+           (_("Device '%s' has no supported format"), v4l2object->videodev),
+-          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
+-              GST_FOURCC_ARGS (pixelformat), width, height,
+-              g_strerror (errno)));
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT ": %s",
++              GST_FOURCC_ARGS (pixelformat), g_strerror (errno)));
+     } else {
+       GST_V4L2_ERROR (error, RESOURCE, FAILED,
+           (_("Device '%s' failed during initialization"),
+               v4l2object->videodev),
+-          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
+-              GST_FOURCC_ARGS (pixelformat), width, height,
+-              g_strerror (errno)));
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT ": %s",
++              GST_FOURCC_ARGS (pixelformat), g_strerror (errno)));
+     }
+     return FALSE;
+   }
+@@ -5000,6 +4960,54 @@ invalid_pixelformat:
+   }
+ }
+ 
++GstCaps *
++gst_v4l2_object_verify_resolution (GstV4l2Object * v4l2object,
++    GstCaps * caps, struct v4l2_rect * rect,
++    const GValue * fmt, gboolean is_drm, GstCaps * out_caps)
++{
++  GstV4l2Error error;
++  const GstV4L2FormatDesc *desc, *fallback_desc = NULL;
++  GstStructure *s = gst_caps_get_structure (caps, 0);
++  const gchar *str = g_value_get_string (fmt);
++  GstVideoFormat format = gst_video_format_from_string (str);
++  struct v4l2_rect r = *rect;
++
++  if (G_VALUE_TYPE (fmt) != G_TYPE_STRING)
++    return out_caps;
++
++  if (is_drm) {
++    guint64 drm_modifier;
++    guint32 drm_fourcc =
++        gst_video_dma_drm_fourcc_from_string (str, &drm_modifier);
++    desc = gst_v4l2_object_get_desc_from_drm_fourcc (drm_fourcc, drm_modifier,
++        NULL);
++    gst_structure_set (s, "drm-format", G_TYPE_STRING, str, NULL);
++  } else {
++    desc =
++        gst_v4l2_object_get_desc_from_video_format (format, &fallback_desc);
++    gst_structure_set (s, "format", G_TYPE_STRING, str, NULL);
++  }
++  /* Set format first */
++  gst_v4l2_object_update_format (v4l2object, desc, &error);
++
++  /* Then set compose to get downscaled resolution of specified format */
++  if (!gst_v4l2_object_set_compose (v4l2object, &r))
++    return out_caps;
++
++  /* Now update width and height in caps with driver returned compose region */
++  GValue v = G_VALUE_INIT;
++  g_value_init (&v, G_TYPE_INT);
++  g_value_set_int (&v, r.width);
++  gst_structure_set_value (s, "width", &v);
++  g_value_set_int (&v, r.height);
++  gst_structure_set_value (s, "height", &v);
++
++  GST_DEBUG_OBJECT (v4l2object->dbg_obj, "verified caps %" GST_PTR_FORMAT, caps);
++  out_caps = gst_caps_merge (out_caps, caps);
++
++  return out_caps;
++}
++
+ gboolean
+ gst_v4l2_object_set_format (GstV4l2Object * v4l2object, GstCaps * caps,
+     GstV4l2Error * error)
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index 448cce9c09..bd86a97500 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -312,7 +312,10 @@ GstCaps*     gst_v4l2_object_probe_template_caps (const gchar * device, gint vid
+ gboolean     gst_v4l2_object_set_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
+ gboolean     gst_v4l2_object_try_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
+ gboolean     gst_v4l2_object_try_import  (GstV4l2Object * v4l2object, GstBuffer * buffer);
+-gboolean     gst_v4l2_object_update_format (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
++GstCaps *    gst_v4l2_object_verify_resolution (GstV4l2Object * v4l2object,
++                                                GstCaps * caps, struct v4l2_rect * rect,
++                                                const GValue * fmt, gboolean is_drm,
++                                                GstCaps * out_caps);
+ 
+ gboolean     gst_v4l2_object_caps_equal       (GstV4l2Object * v4l2object, GstCaps * caps);
+ gboolean     gst_v4l2_object_caps_is_subset   (GstV4l2Object * v4l2object, GstCaps * caps);
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 536d133584..7fcd0e6f45 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -403,52 +403,77 @@ gst_v4l2_video_remove_padding (GstCapsFeatures * features,
+   return TRUE;
+ }
+ 
+-static gboolean
++static GstCaps *
+ gst_v4l2_video_update_resolution (GstVideoDecoder * decoder,
+     GstCaps * caps, guint max_width, gboolean set_compose)
+ {
+   GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
+   GstStructure *s = gst_caps_get_structure (caps, 0);
+-  GstV4l2Error error;
+-  gboolean updated = FALSE;
++  GstCaps *out_caps = NULL;
++  struct v4l2_rect rect = { 0 };
++  gint w = 0, h = 0;
++  gboolean is_drm = FALSE;
+   const GValue *val;
+ 
+-  if ((val = gst_structure_get_value (s, "width"))) {
+-    gint w = 0, h = 0;
+-    if (G_VALUE_TYPE (val) == G_TYPE_INT)
+-      w = g_value_get_int (val);
+-    if ((val = gst_structure_get_value (s, "height")))
+-      if (G_VALUE_TYPE (val) == G_TYPE_INT)
+-        h = g_value_get_int (val);
+-    if (max_width < w) {
+-      /* If resolution exceeds downstream caps, try to set compose region of selection to downscale */
+-      struct v4l2_rect rect = { 0 };
+-      rect.width = max_width;
+-      rect.height = h * max_width / w;
+-      if (set_compose) {
+-        /* Set format first */
+-        GstCaps *tmp = gst_caps_copy_nth (caps, 0);
+-        tmp = gst_caps_fixate (tmp);
+-        gst_v4l2_object_update_format (self->v4l2capture, tmp, &error);
+-        gst_caps_unref (tmp);
+-        /* Then set compose to get downscaled resolution of specified format */
+-        if (!gst_v4l2_object_set_compose (self->v4l2capture, &rect))
+-          return FALSE;
+-      }
+-      if (rect.width <= max_width) {
+-        /* Now update width and height in caps with driver returned compose region */
+-        GValue v = G_VALUE_INIT;
+-        g_value_init (&v, G_TYPE_INT);
+-        g_value_set_int (&v, rect.width + rect.left);
+-        gst_structure_set_value (s, "width", &v);
+-        g_value_set_int (&v, rect.height + rect.top);
+-        gst_structure_set_value (s, "height", &v);
+-        updated = TRUE;
+-      }
++  val = gst_structure_get_value (s, "width");
++  if (!val || G_VALUE_TYPE (val) != G_TYPE_INT) {
++    GST_WARNING_OBJECT (self, "width field missing or of wrong type");
++    return gst_caps_copy (caps);
++  }
++  w = g_value_get_int (val);
++  if (max_width >= w)
++    return gst_caps_copy (caps);
++
++  val = gst_structure_get_value (s, "height");
++  if (!val || G_VALUE_TYPE (val) != G_TYPE_INT) {
++    GST_WARNING_OBJECT (self, "height field missing or of wrong type");
++    return gst_caps_copy (caps);
++  }
++  h = g_value_get_int (val);
++
++  /* If resolution exceeds downstream caps, try to set compose region of selection to downscale */
++  if (max_width == 0)
++    max_width = w;
++  rect.width = max_width;
++  rect.height = h * max_width / w;
++  if (!set_compose) {
++    GValue v = G_VALUE_INIT;
++    g_value_init (&v, G_TYPE_INT);
++    g_value_set_int (&v, rect.width);
++    gst_structure_set_value (s, "width", &v);
++    g_value_set_int (&v, rect.height);
++    gst_structure_set_value (s, "height", &v);
++    return gst_caps_copy (caps);
++  }
++
++  /* Now try all the formats and update to supported downscaled resolution */
++  out_caps = gst_caps_new_empty ();
++  val = gst_structure_get_value (s, "format");
++  if (G_VALUE_TYPE (val) == G_TYPE_STRING) {
++    GstVideoFormat format =
++        gst_video_format_from_string (g_value_get_string (val));
++    if (format == GST_VIDEO_FORMAT_DMA_DRM) {
++      is_drm = TRUE;
++      val = gst_structure_get_value (s, "drm-format");
++    }
++  }
++
++  if (G_VALUE_TYPE (val) == GST_TYPE_LIST) {
++    for (int i = 0; i < gst_value_list_get_size (val); i++) {
++      out_caps = gst_v4l2_object_verify_resolution (self->v4l2capture,
++          gst_caps_copy (caps), &rect,
++          gst_value_list_get_value (val, i), is_drm, out_caps);
+     }
++  } else if (G_VALUE_TYPE (val) == G_TYPE_STRING) {
++    out_caps = gst_v4l2_object_verify_resolution (self->v4l2capture,
++        gst_caps_copy (caps), &rect, val, is_drm, out_caps);
++  } else {
++    GST_WARNING_OBJECT (self, "format field missing or of wrong type");
++    gst_caps_unref (out_caps);
++    return gst_caps_copy (caps);
+   }
+ 
+-  return updated;
++  return out_caps;
+ }
+ 
+ static GstCaps *
+@@ -480,13 +505,14 @@ gst_v4l2_video_try_downscaling_caps (GstVideoDecoder * decoder,
+ 
+     for (j = 0; j < caps_size; j++) {
+       GstCaps *tmp = gst_caps_copy_nth (filter, j);
+-      if (gst_v4l2_video_update_resolution (decoder, tmp, max_w, downscale)) {
+-        out_caps = gst_caps_merge (out_caps, tmp);
+-      }
++      out_caps = gst_caps_merge (out_caps,
++          gst_v4l2_video_update_resolution (decoder, tmp, max_w, downscale));
++      gst_caps_unref (tmp);
+     }
+   }
+ 
+   gst_caps_unref (peer_caps);
++  out_caps = gst_caps_simplify (out_caps);
+   GST_DEBUG_OBJECT (self, "updated filter %" GST_PTR_FORMAT, out_caps);
+   return out_caps;
+ }
+@@ -629,7 +655,7 @@ re_negotiate:
+   if (!gst_caps_is_empty (caps))
+     gst_v4l2_video_dec_deprioritize_rgb (caps);
+ 
+-GST_DEBUG_OBJECT (self, "Possible decoded caps: %" GST_PTR_FORMAT, caps);
++  GST_DEBUG_OBJECT (self, "Possible decoded caps: %" GST_PTR_FORMAT, caps);
+   if (gst_caps_is_empty (caps)) {
+     gst_caps_unref (caps);
+     goto not_negotiated;
+@@ -656,18 +682,36 @@ GST_DEBUG_OBJECT (self, "Possible decoded caps: %" GST_PTR_FORMAT, caps);
+ 
+   GST_DEBUG_OBJECT (self, "Chosen decoded caps: %" GST_PTR_FORMAT, caps);
+ 
++  if (self->pending_downscale_setup) {
++    GstCaps *tmp = gst_v4l2_video_update_resolution (decoder, caps, 0, TRUE);
++    gst_caps_unref (caps);
++    gst_caps_unref (acquired_caps);
++    gst_caps_unref (tmp);
++    GST_DEBUG_OBJECT (self, "Completed downscale setup");
++    self->pending_set_format = TRUE;
++    return TRUE;
++  }
++
+   /* Try to set negotiated format, on success replace acquired format */
+   if (gst_v4l2_object_set_format (self->v4l2capture, caps, &error))
+     info = self->v4l2capture->info;
+   else
+     gst_v4l2_clear_error (&error);
+ 
++  self->pending_set_format = FALSE;
+   gst_caps_unref (acquired_caps);
+   acquired_caps = gst_caps_ref (caps);
+ 
+ use_acquired_caps:
+   gst_caps_unref (caps);
+ 
++  if (self->pending_set_format) {
++    self->pending_set_format = FALSE;
++    if (gst_v4l2_object_set_format (self->v4l2capture, acquired_caps, &error))
++      info = self->v4l2capture->info;
++    else
++      gst_v4l2_clear_error (&error);
++  }
+   /*
+    * Check if the format negotiated caps is different from aquired format. If
+    * yes, which is not expected, inactive capture port and re-negotiate using
+@@ -678,6 +722,7 @@ use_acquired_caps:
+     GST_DEBUG_OBJECT (self, "Negotiated format is %s which is different "
+         "from the aquired format %s. Try to re-negotiated using %s\n",
+         info.vinfo.finfo->name, finfo->name, info.vinfo.finfo->name);
++    gst_v4l2_object_stop (self->v4l2capture);
+     goto re_negotiate;
+   }
+ 
+@@ -1178,6 +1223,14 @@ gst_v4l2_video_dec_handle_frame (GstVideoDecoder * decoder,
+         goto activate_failed;
+     }
+ 
++    /* Before output port is actived, set capture port format if downscaling is required */
++    if (self->pending_downscale_setup) {
++      /* Downscaling might be required, try to negotiate src caps with downstream now */
++      if (!gst_v4l2_video_dec_negotiate (decoder))
++        goto not_negotiated;
++    }
++    self->pending_downscale_setup = FALSE;
++
+     /* Ensure to unlock capture, as it may be flushing due to previous
+      * unlock/stop calls */
+     gst_v4l2_object_unlock_stop (self->v4l2output);
+@@ -1395,6 +1448,7 @@ gst_v4l2_video_dec_sink_getcaps (GstVideoDecoder * decoder, GstCaps * filter)
+       if (result && !gst_caps_is_empty (result)) {
+         gst_caps_unref (result);
+         result = gst_caps_copy (filter);
++        self->pending_downscale_setup = TRUE;
+       }
+     }
+   } else if (!gst_caps_is_empty (result) && self->probed_sinkcaps) {
+diff --git a/sys/v4l2/gstv4l2videodec.h b/sys/v4l2/gstv4l2videodec.h
+index fa36393e23..3484c5a5bd 100644
+--- a/sys/v4l2/gstv4l2videodec.h
++++ b/sys/v4l2/gstv4l2videodec.h
+@@ -64,6 +64,8 @@ struct _GstV4l2VideoDec
+   GstFlowReturn output_flow;
+   GMutex decoding_lock;
+   GCond decoding_cond;
++  gboolean pending_downscale_setup;
++  gboolean pending_set_format;
+ 
+   /* Source Change Events */
+   gboolean wait_for_source_change;

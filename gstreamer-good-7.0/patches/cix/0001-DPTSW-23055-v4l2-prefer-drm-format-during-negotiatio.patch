@@ -1,0 +1,52 @@
+From 23b0253c05b8e05732404dc8b68f13f94836a96f Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 10 Feb 2026 17:22:24 +0800
+Subject: [PATCH] DPTSW-23055: v4l2: prefer drm format during negotiation
+
+If possible, prefer DRM format to avoid memory copy. That means when
+AFBC system format is chosen, try alternative non-AFBC DRM format. If
+this DRM format is in possible decoded caps, use it to re-negotiate.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I25bdf4dc6206ead55add6e720ea160ca74d482ed
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 7fcd0e6f45..4fa9d8f34e 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -674,8 +674,34 @@ re_negotiate:
+     gst_clear_caps (&acquired_drm_caps);
+   }
+ 
+-  if (gst_caps_is_subset (acquired_caps, caps))
++  if (gst_caps_is_subset (acquired_caps, caps)) {
++    /* Prefer non-AFBC DRM format if non-DRM AFBC format is chosen,
++     * for zero-copy and better performance */
++    const char *alt_format = NULL;
++    GstCaps *alt_caps = gst_caps_copy (acquired_caps);
++    GstStructure *st = gst_caps_get_structure (alt_caps, 0);
++    const char *format = gst_structure_get_string (st, "format");
++    if (g_str_equal (format, "YUV420_AFBC_8")) {
++      alt_format = "NV12";
++    } else if (g_str_equal (format, "YUV420_AFBC_10")) {
++      alt_format = "P010_10LE";
++    } else if (g_str_equal (format, "YUV422_AFBC_8")) {
++      alt_format = "YUYV";
++    }
++    if (alt_format) {
++      gst_structure_set (st, "format", G_TYPE_STRING, alt_format, NULL);
++      GST_DEBUG_OBJECT (self, "Alternative caps: %" GST_PTR_FORMAT, alt_caps);
++      if (gst_caps_is_subset (alt_caps, caps)) {
++        gst_v4l2_object_set_format (self->v4l2capture, alt_caps, &error);
++        gst_caps_unref (alt_caps);
++        gst_caps_unref (acquired_caps);
++        gst_caps_unref (caps);
++        goto re_negotiate;
++      }
++    }
++
+     goto use_acquired_caps;
++  }
+ 
+   /* Fixate pixel format */
+   caps = gst_caps_fixate (caps);

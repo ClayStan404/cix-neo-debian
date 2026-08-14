@@ -1,0 +1,25 @@
+From 53f44fb5802638219d97d468db5d3c6f9f89ae8b Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 4 Nov 2025 15:31:45 +0800
+Subject: [PATCH] DPTSW-20823: fix format null pointer issue
+
+In function gst_v4l2_video_dec_deprioritize_rgb(),
+gst_structure_get_string could return null pinter is the format in caps
+is a list. Check the return value to use format.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Icc664541ef49d6383b68c1f9d9d19b1b81ec0da4
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 1325ef17ae..a2b4d63d0b 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -505,7 +505,7 @@ gst_v4l2_video_dec_deprioritize_rgb (GstCaps * caps)
+     GstStructure *s = gst_caps_get_structure (caps, i);
+     const gchar *format = gst_structure_get_string (s, "format");
+ 
+-    if (g_str_equal (format, "RGB")) {
++    if (format && g_str_equal (format, "RGB")) {
+       s = gst_caps_steal_structure (caps, i);
+       gst_caps_append_structure (caps, s);
+       rgb_caps_count++;

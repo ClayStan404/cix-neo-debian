@@ -1,0 +1,168 @@
+From ab8c29e9532422407c3cafa320837e37f4a02882 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 7 Nov 2023 16:02:10 +0800
+Subject: [PATCH] DPTSW-5631-1: video: add YUV AFBC formats
+
+Added following AFBC formats:
+  - YUV420 AFBC 8-bit
+  - YUV420 AFBC 10-bit
+  - YUV422 AFBC 8-bit
+  - YUV422 AFBC 10-bit
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I41c1348aa32f6d2d37f0916bbff22b1648b5a07a
+
+diff --git a/gst-libs/gst/video/video-converter.c b/gst-libs/gst/video/video-converter.c
+index 1e82c8cc78..39c78e8e8b 100644
+--- a/gst-libs/gst/video/video-converter.c
++++ b/gst-libs/gst/video/video-converter.c
+@@ -7947,6 +7947,10 @@ get_scale_format (GstVideoFormat format, gint plane)
+     case GST_VIDEO_FORMAT_DMA_DRM:
+     case GST_VIDEO_FORMAT_MT2110T:
+     case GST_VIDEO_FORMAT_MT2110R:
++    case GST_VIDEO_FORMAT_YUV420_AFBC_8:
++    case GST_VIDEO_FORMAT_YUV420_AFBC_10:
++    case GST_VIDEO_FORMAT_YUV422_AFBC_8:
++    case GST_VIDEO_FORMAT_YUV422_AFBC_10:
+       res = format;
+       g_assert_not_reached ();
+       break;
+diff --git a/gst-libs/gst/video/video-format.c b/gst-libs/gst/video/video-format.c
+index 9bd9c69825..1355f7515f 100644
+--- a/gst-libs/gst/video/video-format.c
++++ b/gst-libs/gst/video/video-format.c
+@@ -7767,6 +7767,8 @@ typedef struct
+  { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX | GST_VIDEO_FORMAT_FLAG_TILED, depth, pstride, plane, offs, sub, pack, tile } }
+ #define MAKE_YUV_ST_FORMAT(name, desc, fourcc, depth, pstride, plane, offs, sub, pack, tile) \
+  { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX | GST_VIDEO_FORMAT_FLAG_TILED | GST_VIDEO_FORMAT_FLAG_SUBTILES, depth, pstride, plane, offs, sub, pack, tile } }
++#define MAKE_YUV_AFBC_FORMAT(name, desc, fourcc, depth, pstride, plane, offs, sub) \
++ { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX, depth, pstride, plane, offs, sub } }
+ 
+ #define MAKE_RGB_FORMAT(name, desc, depth, pstride, plane, offs, sub, pack) \
+  { 0x00000000, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_RGB, depth, pstride, plane, offs, sub, pack } }
+@@ -8108,6 +8110,18 @@ static const VideoFormat formats[] = {
+       PSTR8888, PLANE0, OFFS0, SUB4444, PACK_Y416_BE),
+   MAKE_GRAY_LE_FORMAT (GRAY10_LE16, "raw video", DPTH10, PSTR2, PLANE0, OFFS0,
+       SUB4, PACK_GRAY10_LE16),
++  MAKE_YUV_AFBC_FORMAT (YUV420_AFBC_8, "raw video",
++      GST_MAKE_FOURCC ('Y', '0', 'A', '8'), DPTH8, PSTR1, PLANE0,
++      OFFS0, SUB420),
++  MAKE_YUV_AFBC_FORMAT (YUV420_AFBC_10, "raw video",
++      GST_MAKE_FOURCC ('Y', '0', 'A', 'A'), DPTH10, PSTR2, PLANE0,
++      OFFS0, SUB420),
++  MAKE_YUV_AFBC_FORMAT (YUV422_AFBC_8, "raw video",
++      GST_MAKE_FOURCC ('Y', '2', 'A', '8'), DPTH8, PSTR1, PLANE0,
++      OFFS0, SUB422),
++  MAKE_YUV_AFBC_FORMAT (YUV422_AFBC_10, "raw video",
++      GST_MAKE_FOURCC ('Y', '2', 'A', 'A'), DPTH10, PSTR2, PLANE0,
++      OFFS0, SUB422),
+ };
+ 
+ G_GNUC_END_IGNORE_DEPRECATIONS;
+diff --git a/gst-libs/gst/video/video-format.h b/gst-libs/gst/video/video-format.h
+index b59ec38c8a..b534330976 100644
+--- a/gst-libs/gst/video/video-format.h
++++ b/gst-libs/gst/video/video-format.h
+@@ -670,6 +670,42 @@ typedef enum {
+    */
+   GST_VIDEO_FORMAT_GRAY10_LE16,
+ 
++  /**
++   * GST_VIDEO_FORMAT_YUV420_AFBC_8:
++   *
++   * 8-bit 4:2:0 YUV AFBC
++   *
++   * Since: 1.26
++   */
++  GST_VIDEO_FORMAT_YUV420_AFBC_8,
++
++  /**
++   * GST_VIDEO_FORMAT_YUV420_AFBC_10:
++   *
++   * 10-bit 4:2:0 YUV AFBC
++   *
++   * Since: 1.26
++   */
++  GST_VIDEO_FORMAT_YUV420_AFBC_10,
++
++  /**
++   * GST_VIDEO_FORMAT_YUV422_AFBC_8:
++   *
++   * 8-bit 4:2:2 YUV AFBC
++   *
++   * Since: 1.26
++   */
++  GST_VIDEO_FORMAT_YUV422_AFBC_8,
++
++  /**
++   * GST_VIDEO_FORMAT_YUV422_AFBC_10:
++   *
++   * 10-bit 4:2:2 YUV AFBC
++   *
++   * Since: 1.26
++   */
++  GST_VIDEO_FORMAT_YUV422_AFBC_10,
++
+   /* Update GST_VIDEO_FORMAT_LAST below when adding more formats here */
+ } GstVideoFormat;
+ 
+@@ -680,7 +716,7 @@ typedef enum {
+  *
+  * Since: 1.26
+  */
+-#define GST_VIDEO_FORMAT_LAST (GST_VIDEO_FORMAT_GRAY10_LE16 + 1)
++#define GST_VIDEO_FORMAT_LAST (GST_VIDEO_FORMAT_YUV422_AFBC_10 + 1)
+ 
+ #define GST_VIDEO_MAX_PLANES 4
+ #define GST_VIDEO_MAX_COMPONENTS 4
+diff --git a/gst-libs/gst/video/video-info.c b/gst-libs/gst/video/video-info.c
+index 04d52b03b2..dbb1feefe2 100644
+--- a/gst-libs/gst/video/video-info.c
++++ b/gst-libs/gst/video/video-info.c
+@@ -1389,6 +1389,46 @@ fill_planes (GstVideoInfo * info, gsize plane_size[GST_VIDEO_MAX_PLANES])
+       info->size = info->offset[1] + info->offset[1] / 2;
+       break;
+     }
++    case GST_VIDEO_FORMAT_YUV420_AFBC_8:
++    {
++      gint width_in_mb = GST_ROUND_UP_16 (width) >> 4;
++      gint height_in_mb = (GST_ROUND_UP_16 (height) >> 4) + 1;
++      gint mb_hdr_size = 16;
++      gint mb_size = 384;
++      info->size = GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_hdr_size);
++      info->size += GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_size);
++      break;
++    }
++    case GST_VIDEO_FORMAT_YUV420_AFBC_10:
++    {
++      gint width_in_mb = GST_ROUND_UP_16 (width) >> 4;
++      gint height_in_mb = (GST_ROUND_UP_16 (height) >> 4) + 1;
++      gint mb_hdr_size = 16;
++      gint mb_size = 480;
++      info->size = GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_hdr_size);
++      info->size += GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_size);
++      break;
++    }
++    case GST_VIDEO_FORMAT_YUV422_AFBC_8:
++    {
++      gint width_in_mb = GST_ROUND_UP_16 (width) >> 4;
++      gint height_in_mb = (GST_ROUND_UP_16 (height) >> 4) + 1;
++      gint mb_hdr_size = 16;
++      gint mb_size = 512;
++      info->size = GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_hdr_size);
++      info->size += GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_size);
++      break;
++    }
++    case GST_VIDEO_FORMAT_YUV422_AFBC_10:
++    {
++      gint width_in_mb = GST_ROUND_UP_16 (width) >> 4;
++      gint height_in_mb = (GST_ROUND_UP_16 (height) >> 4) + 1;
++      gint mb_hdr_size = 16;
++      gint mb_size = 656;
++      info->size = GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_hdr_size);
++      info->size += GST_ROUND_UP_128 (width_in_mb * height_in_mb * mb_size);
++      break;
++    }
+     case GST_VIDEO_FORMAT_ENCODED:
+     case GST_VIDEO_FORMAT_DMA_DRM:
+       break;

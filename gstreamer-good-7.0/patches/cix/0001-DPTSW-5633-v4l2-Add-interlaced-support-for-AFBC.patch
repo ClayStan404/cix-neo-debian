@@ -1,0 +1,114 @@
+From 3232c40680bd717fb67cc28336df534812ce073e Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 4 Dec 2023 13:59:40 +0800
+Subject: [PATCH] DPTSW-5633: v4l2: Add interlaced support for AFBC
+
+Add V4L2_FIELD_SEQ_BT and V4L2_FIELD_SEQ_TB for AFBC buffer types. AFBC
+doesn't support interleaved fields compression. Use V4L2_FIELD_SEQ_BT
+and V4L2_FIELD_SEQ_TB to align instead.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I26b0597de163bd24cf210a7168199723e8f4f686
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index 5ba32c0a9f..c0bbf2c326 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -1444,6 +1444,14 @@ gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer,
+         GST_BUFFER_FLAG_SET (outbuf, GST_VIDEO_BUFFER_FLAG_TFF);
+       }
+       break;
++    case V4L2_FIELD_SEQ_TB:
++      GST_BUFFER_FLAG_SET (outbuf, GST_VIDEO_BUFFER_FLAG_INTERLACED);
++      GST_BUFFER_FLAG_SET (outbuf, GST_VIDEO_BUFFER_FLAG_TFF);
++      break;
++    case V4L2_FIELD_SEQ_BT:
++      GST_BUFFER_FLAG_SET (outbuf, GST_VIDEO_BUFFER_FLAG_INTERLACED);
++      GST_BUFFER_FLAG_UNSET (outbuf, GST_VIDEO_BUFFER_FLAG_TFF);
++      break;
+     default:
+       GST_BUFFER_FLAG_UNSET (outbuf, GST_VIDEO_BUFFER_FLAG_INTERLACED);
+       GST_BUFFER_FLAG_UNSET (outbuf, GST_VIDEO_BUFFER_FLAG_TFF);
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 81ff613ab6..ee970842b5 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2203,6 +2203,8 @@ gst_v4l2_object_get_interlace_mode (enum v4l2_field field,
+     case V4L2_FIELD_INTERLACED:
+     case V4L2_FIELD_INTERLACED_TB:
+     case V4L2_FIELD_INTERLACED_BT:
++    case V4L2_FIELD_SEQ_TB:
++    case V4L2_FIELD_SEQ_BT:
+       *interlace_mode = GST_VIDEO_INTERLACE_MODE_INTERLEAVED;
+       return TRUE;
+     case V4L2_FIELD_ALTERNATE:
+@@ -2481,7 +2483,8 @@ gst_v4l2_object_add_interlace_mode (GstV4l2Object * v4l2object,
+   struct v4l2_format fmt;
+   GValue interlace_formats = { 0, };
+   enum v4l2_field formats[] = { V4L2_FIELD_NONE,
+-    V4L2_FIELD_INTERLACED, V4L2_FIELD_ALTERNATE
++    V4L2_FIELD_INTERLACED, V4L2_FIELD_ALTERNATE,
++    V4L2_FIELD_SEQ_TB, V4L2_FIELD_SEQ_BT
+   };
+   gsize i;
+   GstVideoInterlaceMode interlace_mode, prev = -1;
+@@ -3691,6 +3694,15 @@ store_info:
+   }
+ }
+ 
++static gboolean
++is_afbc_format (GstVideoFormat format)
++{
++  return (format == GST_VIDEO_FORMAT_YUV420_AFBC_8 ||
++      format == GST_VIDEO_FORMAT_YUV420_AFBC_10 ||
++      format == GST_VIDEO_FORMAT_YUV422_AFBC_8 ||
++      format == GST_VIDEO_FORMAT_YUV422_AFBC_10);
++}
++
+ static enum v4l2_field
+ get_v4l2_field_for_info (GstVideoInfo * info)
+ {
+@@ -3701,14 +3713,25 @@ get_v4l2_field_for_info (GstVideoInfo * info)
+       GST_VIDEO_INTERLACE_MODE_ALTERNATE)
+     return V4L2_FIELD_ALTERNATE;
+ 
+-  switch (GST_VIDEO_INFO_FIELD_ORDER (info)) {
+-    case GST_VIDEO_FIELD_ORDER_TOP_FIELD_FIRST:
+-      return V4L2_FIELD_INTERLACED_TB;
+-    case GST_VIDEO_FIELD_ORDER_BOTTOM_FIELD_FIRST:
+-      return V4L2_FIELD_INTERLACED_BT;
+-    case GST_VIDEO_FIELD_ORDER_UNKNOWN:
+-    default:
+-      return V4L2_FIELD_INTERLACED;
++  if (is_afbc_format (GST_VIDEO_INFO_FORMAT (info))) {
++    switch (GST_VIDEO_INFO_FIELD_ORDER (info)) {
++      case GST_VIDEO_FIELD_ORDER_BOTTOM_FIELD_FIRST:
++        return V4L2_FIELD_SEQ_BT;
++      case GST_VIDEO_FIELD_ORDER_TOP_FIELD_FIRST:
++      case GST_VIDEO_FIELD_ORDER_UNKNOWN:
++      default:
++        return V4L2_FIELD_SEQ_TB;
++    }
++  } else {
++    switch (GST_VIDEO_INFO_FIELD_ORDER (info)) {
++      case GST_VIDEO_FIELD_ORDER_TOP_FIELD_FIRST:
++        return V4L2_FIELD_INTERLACED_TB;
++      case GST_VIDEO_FIELD_ORDER_BOTTOM_FIELD_FIRST:
++        return V4L2_FIELD_INTERLACED_BT;
++      case GST_VIDEO_FIELD_ORDER_UNKNOWN:
++      default:
++        return V4L2_FIELD_INTERLACED;
++    }
+   }
+ }
+ 
+@@ -4826,6 +4849,8 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+     case V4L2_FIELD_INTERLACED:
+     case V4L2_FIELD_INTERLACED_TB:
+     case V4L2_FIELD_INTERLACED_BT:
++    case V4L2_FIELD_SEQ_TB:
++    case V4L2_FIELD_SEQ_BT:
+       interlace_mode = GST_VIDEO_INTERLACE_MODE_INTERLEAVED;
+       break;
+     case V4L2_FIELD_ALTERNATE:

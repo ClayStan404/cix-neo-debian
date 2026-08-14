@@ -1,0 +1,28 @@
+From ac6bff8349b754c79d0725aaaaca949bbd89589b Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 4 Nov 2025 15:46:28 +0800
+Subject: [PATCH] DPTSW-20827: always use negotiated caps in output state
+
+Always use negotiated caps in output state, so that buffer format and
+pad format can be aligned. Otherwise, following assertion will be
+triggered.
+
+assertion 'info->finfo->format == meta->format'
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I92c8d42cdc19db4113619d518c3656b596b01acd
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 632e7aeef5..2c9b8516f4 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -662,6 +662,9 @@ GST_DEBUG_OBJECT (self, "Possible decoded caps: %" GST_PTR_FORMAT, caps);
+   else
+     gst_v4l2_clear_error (&error);
+ 
++  gst_caps_unref (acquired_caps);
++  acquired_caps = gst_caps_ref (caps);
++
+ use_acquired_caps:
+   gst_caps_unref (caps);
+ 

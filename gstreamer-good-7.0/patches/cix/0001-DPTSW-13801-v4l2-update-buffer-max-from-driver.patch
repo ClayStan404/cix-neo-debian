@@ -1,0 +1,90 @@
+From 2b51da8d7391da310a2aba6929a3fe874be29546 Mon Sep 17 00:00:00 2001
+From: "xinqi.wang" <XinQi.Wang@cixtech.com>
+Date: Thu, 12 Dec 2024 15:23:45 +0800
+Subject: [PATCH] DPTSW-13801: v4l2: update buffer max from driver
+
+When decode large resolution stream in Totem,
+default buffer count may map fail due to not enough map area;
+Update buffer_max from VPU driver to limit actual buffer_min to allocate
+frame buffers
+
+Signed-off-by: Xinqi.Wang <xinqi.wang@cixtech.com>
+Change-Id: I3b1c28ea31ed45ee2c3d4c3c2c3c391072140885
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 70ee29a3f6..351112dcb9 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -919,6 +919,27 @@ gst_v4l2_get_driver_min_buffers (GstV4l2Object * v4l2object)
+   }
+ }
+ 
++static void
++gst_v4l2_get_driver_max_buffers (GstV4l2Object * v4l2object)
++{
++  struct v4l2_control control = { 0, };
++
++  g_return_if_fail (GST_V4L2_IS_OPEN (v4l2object));
++
++  if (V4L2_TYPE_IS_OUTPUT (v4l2object->type))
++    return;
++  else
++    control.id = V4L2_CID_MVE_VIDEO_MAX_BUFFERS_FOR_CAPTURE;
++
++  if (v4l2object->ioctl (v4l2object->video_fd, VIDIOC_G_CTRL, &control) == 0) {
++    GST_DEBUG_OBJECT (v4l2object->dbg_obj,
++        "driver requires a maximum of %d buffers", control.value);
++    v4l2object->max_buffers = control.value;
++  } else {
++    v4l2object->max_buffers = 32;
++  }
++}
++
+ static void
+ gst_v4l2_set_defaults (GstV4l2Object * v4l2object)
+ {
+@@ -3511,6 +3532,11 @@ gst_v4l2_object_setup_pool (GstV4l2Object * v4l2object, GstCaps * caps)
+   if (!v4l2object->min_buffers)
+     gst_v4l2_get_driver_min_buffers (v4l2object);
+ 
++  /* If max_buffers is not set, the driver either does not support the control or
++     it has not been asked yet via propose_allocation/decide_allocation. */
++  if (v4l2object->max_buffers == 0)
++    gst_v4l2_get_driver_max_buffers (v4l2object);
++
+   /* Map the buffers */
+   GST_LOG_OBJECT (v4l2object->dbg_obj, "initiating buffer pool");
+ 
+@@ -5993,6 +6019,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
+   can_share_own_pool = (has_video_meta || !obj->need_video_meta);
+ 
+   gst_v4l2_get_driver_min_buffers (obj);
++  gst_v4l2_get_driver_max_buffers (obj);
+   /* We can't share our own pool, if it exceed V4L2 capacity */
+   if (min + obj->min_buffers + 1 > VIDEO_MAX_FRAME)
+     can_share_own_pool = FALSE;
+@@ -6107,7 +6134,8 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
+ 
+   /* Request a bigger max, if one was suggested but it's too small */
+   if (max != 0)
+-    max = MAX (min, max);
++    max = CLAMP (max, min, obj->max_buffers);
++  own_min = CLAMP (own_min, min, max);
+ 
+   /* First step, configure our own pool */
+   config = gst_buffer_pool_get_config (obj_pool);
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index 496454dd6d..448cce9c09 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -180,6 +180,10 @@ struct _GstV4l2Object {
+    * calculate the minimum latency. */
+   guint32 min_buffers;
+ 
++  /* This will be set if supported in decide_allocation. It can be used to
++   * calculate the maximum latency. */
++  guint32 max_buffers;
++
+   /* wanted mode */
+   GstV4l2IOMode req_mode;
+ 

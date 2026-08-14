@@ -1,0 +1,71 @@
+From 49ed32fb615da6b1a553a20314d1dc853dd20865 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 9 Nov 2023 11:32:47 +0800
+Subject: [PATCH] DPTSW-5631-2: v4l2: enable yuv420 afbc output for H.264
+ decoder
+
+Added YUV420/YUV422 AFBC8/AFBC10 formats and enable YUV420 AFBC 8bit
+output for v4l2h264dec.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I7fbd3c42d52619ce9ade53210262073dcb1052d2
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index 4e59743e7a..5ba32c0a9f 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -144,6 +144,15 @@ gst_v4l2_buffer_pool_resize_buffer (GstBufferPool * bpool, GstBuffer * buffer)
+   }
+ }
+ 
++static gboolean
++gst_v4l2_is_afbc_format (GstVideoFormat format)
++{
++  return (format == GST_VIDEO_FORMAT_YUV420_AFBC_8 ||
++      format == GST_VIDEO_FORMAT_YUV420_AFBC_10 ||
++      format == GST_VIDEO_FORMAT_YUV422_AFBC_8 ||
++      format == GST_VIDEO_FORMAT_YUV422_AFBC_10);
++}
++
+ static GstFlowReturn
+ gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
+     GstBuffer * src)
+@@ -153,7 +162,8 @@ gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
+   GST_LOG_OBJECT (pool, "copying buffer");
+ 
+   if (finfo && (finfo->format != GST_VIDEO_FORMAT_UNKNOWN &&
+-          finfo->format != GST_VIDEO_FORMAT_ENCODED)) {
++          finfo->format != GST_VIDEO_FORMAT_ENCODED &&
++          !gst_v4l2_is_afbc_format (finfo->format))) {
+     GstVideoFrame src_frame, dest_frame;
+ 
+     GST_DEBUG_OBJECT (pool, "copy video frame");
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 2961c29754..81ff613ab6 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -174,6 +174,10 @@ static GstV4L2FormatDesc gst_v4l2_formats[] = {
+   {MAP_FMT (YUV32, UNKNOWN),  MAP_DRM (INVALID, INVALID), GST_V4L2_RAW},
+   {MAP_FMT (HI240, UNKNOWN),  MAP_DRM (INVALID, INVALID), GST_V4L2_RAW},
+   {MAP_FMT (M420, UNKNOWN),   MAP_DRM (INVALID, INVALID),  GST_V4L2_RAW},
++  {MAP_FMT (YUV420_AFBC_8, YUV420_AFBC_8),   KNOWN_DRM_MAP, GST_V4L2_RAW},
++  {MAP_FMT (YUV420_AFBC_10, YUV420_AFBC_10), KNOWN_DRM_MAP, GST_V4L2_RAW},
++  {MAP_FMT (YUV422_AFBC_8, YUV422_AFBC_8),   KNOWN_DRM_MAP, GST_V4L2_RAW},
++  {MAP_FMT (YUV422_AFBC_10, YUV422_AFBC_10), KNOWN_DRM_MAP, GST_V4L2_RAW},
+ 
+   /* two planes -- one Y,         one Cr + Cb interleaved  */
+   {MAP_FMT (NV12M, NV12),                       KNOWN_DRM_MAP,                      GST_V4L2_RAW},
+@@ -1257,6 +1261,13 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
+       rank = PWC_BASE_RANK;
+       break;
+ 
++    case V4L2_PIX_FMT_YUV420_AFBC_8:
++    case V4L2_PIX_FMT_YUV420_AFBC_10:
++    case V4L2_PIX_FMT_YUV422_AFBC_8:
++    case V4L2_PIX_FMT_YUV422_AFBC_10:
++      rank = YUV_BASE_RANK;
++      break;
++
+     default:
+       rank = 0;
+       break;

@@ -1,0 +1,24 @@
+From 61d2df3a9d7ee840b9f870b91354edfef3143a6e Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 4 Nov 2025 15:34:39 +0800
+Subject: [PATCH] DPTSW-20825: use fixation_caps to intersect caps
+
+Use fixation_caps instead of acquired_caps to intersect caps.
+fixation_caps is a superset of acquired_caps.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I8bd3a2386f08ad5afa179b83d2d2a1d0d67389e4
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index a2b4d63d0b..632e7aeef5 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -601,7 +601,7 @@ re_negotiate:
+ 
+   /* Filter out caps with original colorimetry and put them in front of the
+    * filter caps set. Make sure these caps can be chosen first. */
+-  ftmp = gst_caps_intersect_full (available_caps, acquired_caps,
++  ftmp = gst_caps_intersect_full (available_caps, fixation_caps,
+         GST_CAPS_INTERSECT_FIRST);
+   filter = gst_caps_intersect_full (ftmp, colorimerty_filter,
+       GST_CAPS_INTERSECT_FIRST);

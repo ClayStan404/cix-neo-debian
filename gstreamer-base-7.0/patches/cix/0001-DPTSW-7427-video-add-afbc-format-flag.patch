@@ -1,0 +1,53 @@
+From e114c2897e175900c284951f34b50f2870e5789a Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 22 Feb 2024 11:06:04 +0800
+Subject: [PATCH] DPTSW-7427: video: add afbc format flag
+
+Add AFBC format flag, and define a macro for AFBC format check.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Iaef6089434d7ea2a0055a33ea7fefc5449150690
+
+diff --git a/gst-libs/gst/video/video-format.c b/gst-libs/gst/video/video-format.c
+index 1355f7515f..59457eae21 100644
+--- a/gst-libs/gst/video/video-format.c
++++ b/gst-libs/gst/video/video-format.c
+@@ -7768,7 +7768,7 @@ typedef struct
+ #define MAKE_YUV_ST_FORMAT(name, desc, fourcc, depth, pstride, plane, offs, sub, pack, tile) \
+  { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX | GST_VIDEO_FORMAT_FLAG_TILED | GST_VIDEO_FORMAT_FLAG_SUBTILES, depth, pstride, plane, offs, sub, pack, tile } }
+ #define MAKE_YUV_AFBC_FORMAT(name, desc, fourcc, depth, pstride, plane, offs, sub) \
+- { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX, depth, pstride, plane, offs, sub } }
++ { fourcc, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_YUV | GST_VIDEO_FORMAT_FLAG_COMPLEX | GST_VIDEO_FORMAT_FLAG_AFBC, depth, pstride, plane, offs, sub } }
+ 
+ #define MAKE_RGB_FORMAT(name, desc, depth, pstride, plane, offs, sub, pack) \
+  { 0x00000000, {GST_VIDEO_FORMAT_ ##name, G_STRINGIFY(name), desc, GST_VIDEO_FORMAT_FLAG_RGB, depth, pstride, plane, offs, sub, pack } }
+diff --git a/gst-libs/gst/video/video-format.h b/gst-libs/gst/video/video-format.h
+index b534330976..afcbffa465 100644
+--- a/gst-libs/gst/video/video-format.h
++++ b/gst-libs/gst/video/video-format.h
+@@ -745,6 +745,7 @@ typedef struct _GstVideoFormatInfo GstVideoFormatInfo;
+  *   in the last plane.
+  * @GST_VIDEO_FORMAT_FLAG_SUBTILES: The tile size varies per plane
+  *   according to the subsampling. (Since: 1.22)
++ * @GST_VIDEO_FORMAT_FLAG_AFBC: The video is in AFBC format
+  *
+  * The different video flags that a format info can have.
+  */
+@@ -766,7 +767,8 @@ typedef enum
+    *
+    * Since: 1.22
+    */
+-  GST_VIDEO_FORMAT_FLAG_SUBTILES = (1 << 9)
++  GST_VIDEO_FORMAT_FLAG_SUBTILES = (1 << 9),
++  GST_VIDEO_FORMAT_FLAG_AFBC     = (1 << 10)
+ } GstVideoFormatFlags;
+ 
+ /* YUV components */
+@@ -978,6 +980,7 @@ struct _GstVideoFormatInfo {
+ #define GST_VIDEO_FORMAT_INFO_HAS_PALETTE(info)  (((info)->flags & GST_VIDEO_FORMAT_FLAG_PALETTE) != 0)
+ #define GST_VIDEO_FORMAT_INFO_IS_COMPLEX(info)   (((info)->flags & GST_VIDEO_FORMAT_FLAG_COMPLEX) != 0)
+ #define GST_VIDEO_FORMAT_INFO_IS_TILED(info)     (((info)->flags & GST_VIDEO_FORMAT_FLAG_TILED) != 0)
++#define GST_VIDEO_FORMAT_INFO_IS_AFBC(info)      (((info)->flags & GST_VIDEO_FORMAT_FLAG_AFBC) != 0)
+ /**
+  * GST_VIDEO_FORMAT_INFO_HAS_SUBTILES:
+  * @info: a #GstVideoFormatInfo

@@ -1,0 +1,27 @@
+From 469c90304871b57df9fd718550caec101eaad4ae Mon Sep 17 00:00:00 2001
+From: "xinqi.wang" <XinQi.Wang@cixtech.com>
+Date: Fri, 7 Feb 2025 10:16:02 +0800
+Subject: [PATCH] DPTSW-13177: v4l2: update decode handle STOP cmd condition
+
+When decode 1 frame with multi-session by gst-launch-1.0 cmd,
+several sessions may cause error due to STOP cmd is sent too early;
+Update decode STOP cmd handler condition by:
+Sending STOP cmd after resolution change event got dequeued
+
+Signed-off-by: Xinqi.Wang <xinqi.wang@cixtech.com>
+Change-Id: I53707ca031d2469cbc59f7b9221170d51037e8d7
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 2b15f7dedb..70ca57fca9 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -730,7 +730,8 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
+   /* If we are in the middle of a source change, cancel it */
+   self->draining = FALSE;
+ 
+-  if (gst_v4l2_decoder_cmd (self->v4l2output, V4L2_DEC_CMD_STOP, 0)) {
++  if (g_atomic_int_get (&self->capture_configuration_change) &&
++      gst_v4l2_decoder_cmd (self->v4l2output, V4L2_DEC_CMD_STOP, 0)) {
+     GstTask *task;
+ 
+     GST_OBJECT_LOCK (decoder->srcpad);

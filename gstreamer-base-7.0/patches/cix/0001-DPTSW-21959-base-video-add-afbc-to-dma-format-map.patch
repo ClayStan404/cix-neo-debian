@@ -1,0 +1,26 @@
+From 943678cfa9eeab5cfbebfda4963d55822ae86110 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 26 Dec 2025 11:07:38 +0800
+Subject: [PATCH] DPTSW-21959: base: video: add afbc to dma format map
+
+Add GST_VIDEO_FORMAT_YUV420_AFBC_8, GST_VIDEO_FORMAT_YUV420_AFBC_10 and
+GST_VIDEO_FORMAT_YUV422_AFBC_8 to DMA DRM format map to decribe DRM
+format and modifier.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Ie7db5a94bbd37150ecdb488a2e9f2e7914cbcf78
+
+diff --git a/gst-libs/gst/video/video-info-dma.c b/gst-libs/gst/video/video-info-dma.c
+index 7e8b9b83ba..1f89595c16 100644
+--- a/gst-libs/gst/video/video-info-dma.c
++++ b/gst-libs/gst/video/video-info-dma.c
+@@ -583,6 +583,9 @@ static const struct FormatMap
+   {GST_VIDEO_FORMAT_GRAY8, DRM_FORMAT_R8, DRM_FORMAT_MOD_LINEAR},
+   {GST_VIDEO_FORMAT_GRAY16_LE, DRM_FORMAT_R16, DRM_FORMAT_MOD_LINEAR},
+   {GST_VIDEO_FORMAT_GRAY16_BE, DRM_FORMAT_R16 | DRM_FORMAT_BIG_ENDIAN, DRM_FORMAT_MOD_LINEAR},
++  {GST_VIDEO_FORMAT_YUV420_AFBC_8, DRM_FORMAT_YUV420_8BIT, DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16)},
++  {GST_VIDEO_FORMAT_YUV420_AFBC_10, DRM_FORMAT_YUV420_10BIT, DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16)},
++  {GST_VIDEO_FORMAT_YUV422_AFBC_8, DRM_FORMAT_YUV422, DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16)},
+ };
+ /* *INDENT-ON* */
+ 

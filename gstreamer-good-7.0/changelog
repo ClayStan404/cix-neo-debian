@@ -1,0 +1,25 @@
+gst-plugins-good1.0 (1.26.2-1+deb13u2+cix7.0.1) trixie; urgency=medium
+
+  * Add the CIX V4L2 codec, AFBC negotiation, buffer lifecycle, colorimetry,
+    downscaling, and source-change fixes required by the Linux 7.0 VPU stack.
+  * Retain all Debian 13 security fixes through 1.26.2-1+deb13u2.
+
+ -- Clay Stan <claystan97@gmail.com>  Fri, 14 Aug 2026 17:05:19 +0800
+
+gst-plugins-good1.0 (1.26.2-1+deb13u2) trixie-security; urgency=medium
+
+  * CVE-2026-39043
+  * CVE-2026-39044
+  * CVE-2026-1940
+  * CVE-2026-3083
+  * CVE-2026-3085
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Sat, 20 Jun 2026 00:13:57 +0200
+
+gst-plugins-good1.0 (1.26.2-1+deb13u1) trixie-security; urgency=medium
+
+  * CVE-2026-5056
+  * CVE-2026-46469
+  * CVE-2026-46470
+
+ -- Moritz Mühlenhoff <jmm@debian.org>  Fri, 29 May 2026 22:42:20 +0200

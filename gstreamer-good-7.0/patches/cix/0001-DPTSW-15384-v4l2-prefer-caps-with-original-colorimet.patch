@@ -1,0 +1,67 @@
+From 4e7ba5ab12ed5b77209cb57b9b36a46575f08477 Mon Sep 17 00:00:00 2001
+From: "Chao.Guo" <Chao.Guo@cixtech.com>
+Date: Tue, 25 Mar 2025 11:16:58 +0800
+Subject: [PATCH] DPTSW-15384: v4l2: prefer caps with original colorimetry as
+ decoded caps
+
+Get original colorimetry from sink caps. Put the caps with the original
+colorimetry in front of the caps set, so that these caps are selected
+first when choosing caps, which ensures that the color information remains
+unchanged after decoding.
+
+Signed-off-by: Chao.Guo <Chao.Guo@cixtech.com>
+Change-Id: I039bc7690498f5f2b6a1c9deffa8859332a53b45
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 247db36a67..3035939aa9 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -500,7 +500,7 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+   const GstVideoFormatInfo *finfo;
+   GstVideoCodecState *output_state;
+   GstCaps *acquired_caps, *acquired_drm_caps;
+-  GstCaps *fixation_caps, *available_caps, *caps, *filter;
++  GstCaps *fixation_caps, *available_caps, *caps, *ftmp, *filter;
+   gboolean active;
+   GstBufferPool *cpool;
+   gboolean ret;
+@@ -531,6 +531,17 @@ re_negotiate:
+   info.vinfo.fps_n = GST_V4L2_FPS_N (self->v4l2output);
+   info.vinfo.fps_d = GST_V4L2_FPS_D (self->v4l2output);
+ 
++  /* Get video colorimerty from sink, since v4l2 device may unable to provide it. */
++  gchar *color;
++  GstCaps *colorimerty_filter = gst_caps_new_empty_simple ("video/x-raw");
++  if ((color =
++          gst_video_colorimetry_to_string (&self->v4l2output->
++              info.vinfo.colorimetry))) {
++    gst_caps_set_simple (colorimerty_filter, "colorimetry", G_TYPE_STRING,
++        color, NULL);
++    g_free (color);
++  }
++
+   gst_caps_replace (&self->probed_srccaps, NULL);
+   self->probed_srccaps = gst_v4l2_object_probe_caps (self->v4l2capture,
+       gst_v4l2_object_get_raw_caps ());
+@@ -566,11 +577,20 @@ re_negotiate:
+    * with downstream, not coded size. */
+   gst_caps_map_in_place (available_caps, gst_v4l2_video_remove_padding, self);
+ 
+-  filter = gst_caps_intersect_full (available_caps, fixation_caps,
++  /* Filter out caps with original colorimetry and put them in front of the
++   * filter caps set. Make sure these caps can be chosen first. */
++  ftmp = gst_caps_intersect_full (available_caps, acquired_caps,
++        GST_CAPS_INTERSECT_FIRST);
++  filter = gst_caps_intersect_full (ftmp, colorimerty_filter,
+       GST_CAPS_INTERSECT_FIRST);
++  if (!gst_caps_is_empty (ftmp))
++    gst_caps_append (filter, ftmp);
++  else
++    gst_caps_unref (ftmp);
+   GST_DEBUG_OBJECT (self, "Filtered caps: %" GST_PTR_FORMAT, filter);
+   gst_caps_unref (fixation_caps);
+   gst_caps_unref (available_caps);
++  gst_caps_unref (colorimerty_filter);
+   caps = gst_pad_peer_query_caps (decoder->srcpad, filter);
+   if (gst_caps_is_empty (caps) && filter) {
+     GstCaps *filter2 =

@@ -1,0 +1,216 @@
+From 6c0b213338b9dc423ad52be9c72f977beff78e01 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 9 Apr 2024 17:49:57 +0800
+Subject: [PATCH] DPTSW-8315: v4l2: fix adaptive dual afbc downscaling issue
+
+Set format before set compose to get correct downscaled resolution.
+Also, set caps to padded region, so the downstream can use correct
+buffer size to get cropped region.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: If0dc0b1022507ba87f8f85fc3af6347544d213d5
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index f01efebb3e..e7a2946994 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -473,7 +473,7 @@ gst_v4l2_buffer_pool_add_crop_meta (GstV4l2BufferPool * pool,
+       /* Use the default compose rectangle */
+       memset (&sel, 0, sizeof (struct v4l2_selection));
+       sel.type = obj->type;
+-      sel.target = V4L2_SEL_TGT_COMPOSE_DEFAULT;
++      sel.target = V4L2_SEL_TGT_COMPOSE;
+       if (obj->ioctl (obj->video_fd, VIDIOC_G_SELECTION, &sel) >= 0) {
+         r = &sel.r;
+       } else {
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index edc9ebd92d..2108ad0fe2 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -4810,6 +4810,119 @@ pool_failed:
+   }
+ }
+ 
++gboolean
++gst_v4l2_object_update_format (GstV4l2Object * v4l2object, GstCaps * caps,
++    GstV4l2Error * error)
++{
++  gint fd = v4l2object->video_fd;
++  struct v4l2_format format;
++  guint32 pixelformat;
++  struct v4l2_fmtdesc *fmtdesc;
++  GstVideoInfoDmaDrm info;
++  GstVideoAlignment align;
++  gint width, height;
++  gboolean is_mplane;
++
++  GST_DEBUG_OBJECT (v4l2object->dbg_obj, "Updating format to %" GST_PTR_FORMAT,
++      caps);
++
++  g_return_val_if_fail (!v4l2object->skip_try_fmt_probes ||
++      gst_caps_is_writable (caps), FALSE);
++
++  GST_V4L2_CHECK_OPEN (v4l2object);
++  GST_V4L2_CHECK_NOT_ACTIVE (v4l2object);
++
++  is_mplane = V4L2_TYPE_IS_MULTIPLANAR (v4l2object->type);
++
++  gst_video_info_dma_drm_init (&info);
++  gst_video_alignment_reset (&align);
++  v4l2object->transfer = GST_VIDEO_TRANSFER_UNKNOWN;
++
++  if (!gst_v4l2_object_get_caps_info (v4l2object, caps, &fmtdesc, &info))
++    goto invalid_caps;
++
++  width = GST_VIDEO_INFO_WIDTH (&info.vinfo);
++  height = GST_VIDEO_INFO_FIELD_HEIGHT (&info.vinfo);
++  /* if caps has no width and height info, use default value */
++  if (V4L2_TYPE_IS_OUTPUT (v4l2object->type) && width == 0 && height == 0) {
++    width = GST_V4L2_DEFAULT_WIDTH;
++    height = GST_V4L2_DEFAULT_HEIGHT;
++  }
++
++  pixelformat = fmtdesc->pixelformat;
++  memset (&format, 0x00, sizeof (struct v4l2_format));
++  format.type = v4l2object->type;
++
++  if (v4l2object->ioctl (fd, VIDIOC_G_FMT, &format) < 0)
++    goto get_fmt_failed;
++
++  if (is_mplane) {
++    format.fmt.pix_mp.pixelformat = pixelformat;
++  } else {
++    format.fmt.pix.pixelformat = pixelformat;
++  }
++
++  if (v4l2object->ioctl (fd, VIDIOC_S_FMT, &format) < 0)
++    goto set_fmt_failed;
++
++  if (format.fmt.pix.pixelformat != pixelformat)
++    goto invalid_pixelformat;
++
++  return TRUE;
++
++  /* ERRORS */
++invalid_caps:
++  {
++    GST_DEBUG_OBJECT (v4l2object->dbg_obj, "can't parse caps %" GST_PTR_FORMAT,
++        caps);
++
++    GST_V4L2_ERROR (error, RESOURCE, SETTINGS,
++        (_("Invalid caps")), ("Can't parse caps %" GST_PTR_FORMAT, caps));
++    return FALSE;
++  }
++get_fmt_failed:
++  {
++    GST_ELEMENT_WARNING (v4l2object->element, RESOURCE, SETTINGS,
++        (_("Video device did not provide format.")), GST_ERROR_SYSTEM);
++    return FALSE;
++  }
++set_fmt_failed:
++  {
++    if (errno == EBUSY) {
++      GST_V4L2_ERROR (error, RESOURCE, BUSY,
++          (_("Device '%s' is busy"), v4l2object->videodev),
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
++              GST_FOURCC_ARGS (pixelformat), width, height,
++              g_strerror (errno)));
++    } else if (errno == EINVAL) {
++      GST_V4L2_ERROR (error, RESOURCE, SETTINGS,
++          (_("Device '%s' has no supported format"), v4l2object->videodev),
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
++              GST_FOURCC_ARGS (pixelformat), width, height,
++              g_strerror (errno)));
++    } else {
++      GST_V4L2_ERROR (error, RESOURCE, FAILED,
++          (_("Device '%s' failed during initialization"),
++              v4l2object->videodev),
++          ("Call to S_FMT failed for %" GST_FOURCC_FORMAT " @ %dx%d: %s",
++              GST_FOURCC_ARGS (pixelformat), width, height,
++              g_strerror (errno)));
++    }
++    return FALSE;
++  }
++invalid_pixelformat:
++  {
++    GST_V4L2_ERROR (error, RESOURCE, SETTINGS,
++        (_("Device '%s' cannot capture in the specified format"),
++            v4l2object->videodev),
++        ("Tried to capture in %" GST_FOURCC_FORMAT
++            ", but device returned format" " %" GST_FOURCC_FORMAT,
++            GST_FOURCC_ARGS (pixelformat),
++            GST_FOURCC_ARGS (format.fmt.pix.pixelformat)));
++    return FALSE;
++  }
++}
++
+ gboolean
+ gst_v4l2_object_set_format (GstV4l2Object * v4l2object, GstCaps * caps,
+     GstV4l2Error * error)
+@@ -4901,17 +5014,10 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+       r = &crop.c;
+   }
+   if (r) {
+-    const GstVideoFormatInfo *finfo;
+     align.padding_left = r->left;
+     align.padding_top = r->top;
+     align.padding_right = width - r->width - r->left;
+     align.padding_bottom = height - r->height - r->top;
+-    /* For AFBC, cropping should be done by downstream, so resolution is not updated */
+-    finfo = gst_video_format_get_info (format);
+-    if (!GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo)) {
+-      width = r->width;
+-      height = r->height;
+-    }
+   }
+ 
+   switch (fmt.fmt.pix.field) {
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index e16dd22f79..e0efdae297 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -305,6 +305,7 @@ GstCaps*     gst_v4l2_object_probe_template_caps (const gchar * device, gint vid
+ gboolean     gst_v4l2_object_set_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
+ gboolean     gst_v4l2_object_try_format  (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
+ gboolean     gst_v4l2_object_try_import  (GstV4l2Object * v4l2object, GstBuffer * buffer);
++gboolean     gst_v4l2_object_update_format (GstV4l2Object * v4l2object, GstCaps * caps, GstV4l2Error * error);
+ 
+ gboolean     gst_v4l2_object_caps_equal       (GstV4l2Object * v4l2object, GstCaps * caps);
+ gboolean     gst_v4l2_object_caps_is_subset   (GstV4l2Object * v4l2object, GstCaps * caps);
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 599578cdfb..66d8398239 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -409,6 +409,7 @@ gst_v4l2_video_update_resolution (GstVideoDecoder * decoder,
+ {
+   GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
+   GstStructure *s = gst_caps_get_structure (caps, 0);
++  GstV4l2Error error;
+   gboolean updated = FALSE;
+   const GValue *val;
+ 
+@@ -425,6 +426,12 @@ gst_v4l2_video_update_resolution (GstVideoDecoder * decoder,
+       rect.width = max_width;
+       rect.height = h * max_width / w;
+       if (set_compose) {
++        /* Set format first */
++        GstCaps *tmp = gst_caps_copy_nth (caps, 0);
++        tmp = gst_caps_fixate (tmp);
++        gst_v4l2_object_update_format (self->v4l2capture, tmp, &error);
++        gst_caps_unref (tmp);
++        /* Then set compose to get downscaled resolution of specified format */
+         if (!gst_v4l2_object_set_compose (self->v4l2capture, &rect))
+           return FALSE;
+       }
+@@ -432,9 +439,9 @@ gst_v4l2_video_update_resolution (GstVideoDecoder * decoder,
+         /* Now update width and height in caps with driver returned compose region */
+         GValue v = G_VALUE_INIT;
+         g_value_init (&v, G_TYPE_INT);
+-        g_value_set_int (&v, rect.width);
++        g_value_set_int (&v, rect.width + rect.left);
+         gst_structure_set_value (s, "width", &v);
+-        g_value_set_int (&v, rect.height);
++        g_value_set_int (&v, rect.height + rect.top);
+         gst_structure_set_value (s, "height", &v);
+         updated = TRUE;
+       }

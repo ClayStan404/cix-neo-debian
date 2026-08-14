@@ -1,0 +1,58 @@
+From 53da78e32c8c9c7ef6895b92873087fee4afc79d Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 20 Aug 2024 18:56:42 +0800
+Subject: [PATCH] DPTSW-11292: v4l2: limit number of large buffers
+
+Limit minimal number of large buffers to 1 as VPU hardware has limited
+virtual address space. Usually, large buffer (> 256MB) is used for image
+codec only, and one buffer should be enough.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I39a99c9e8f63f31b6023608323b9acd11299cfd2
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 2108ad0fe2..4feb288a77 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -6068,7 +6068,7 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
+           FALSE);
+     }
+ 
+-  } else {
++  } else if (obj->info.vinfo.size <= GST_V4L2_LARGE_BUFFER) {
+     /* In this case we'll have to configure two buffer pool. For our buffer
+      * pool, we'll need what the driver one, and one more, so we can dequeu */
+     own_min = obj->min_buffers + 1;
+@@ -6082,6 +6082,9 @@ gst_v4l2_object_decide_allocation (GstV4l2Object * obj, GstQuery * query)
+     /* To import we need the other pool to hold at least own_min */
+     if (obj_pool == pool)
+       min += own_min;
++  } else {
++    own_min = obj->min_buffers;
++    min = obj->min_buffers;
+   }
+ 
+   /* Request a bigger max, if one was suggested but it's too small */
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index e0efdae297..ed8eff5798 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -42,12 +42,16 @@ typedef struct _GstV4l2ObjectClassHelper GstV4l2ObjectClassHelper;
+ 
+ #include <gstv4l2bufferpool.h>
+ 
++#define GST_V4L2_LARGE_BUFFER (1<<28) /* 2^28 = 256M */
++
+ /* size of v4l2 buffer pool in streaming case, obj->info needs to be valid */
+ #define GST_V4L2_MIN_BUFFERS(obj) \
+-    ((GST_VIDEO_INFO_INTERLACE_MODE (&obj->info.vinfo) == \
++    (obj->info.size > GST_V4L2_LARGE_BUFFER ? \
++      1 : \
++      ((GST_VIDEO_INFO_INTERLACE_MODE (&obj->info.vinfo) == \
+       GST_VIDEO_INTERLACE_MODE_ALTERNATE) ? \
+       /* 2x buffers needed with each field in its own buffer */ \
+-      4 : 2)
++      4 : 2))
+ 
+ /* max frame width/height */
+ #define GST_V4L2_MAX_SIZE (1<<15) /* 2^15 == 32768 */

@@ -1,0 +1,3 @@
+# These registration-only plugin modules do not reference libc symbols directly.
+gstreamer1.0-plugins-base binary: library-not-linked-against-libc [usr/lib/*/gstreamer-1.0/libgstapp.so]
+gstreamer1.0-plugins-base binary: library-not-linked-against-libc [usr/lib/*/gstreamer-1.0/libgstpbtypes.so]

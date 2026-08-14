@@ -1,0 +1,102 @@
+From 440eeb28acef4c560cd84774f86465e28ae9376b Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 22 Feb 2024 18:17:33 +0800
+Subject: [PATCH] DPTSW-7367: v4l2: add bt2100-pq colorimetry support
+
+Add BT2100-pq colorimetry for HDR video playback. Original v4l2 plug-in
+enumerates colorspace (primaries) only to get colorimetry from driver
+and add to caps. This most likely doesn't include bt2100-pq which is
+commonly used. Try to add bt2100-pq explicitly if driver supports it.
+
+Change-Id: I96086f6688d532b414ab79cb4231377248d58863
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index d53e5744f4..e5083a034c 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2575,6 +2575,75 @@ gst_v4l2_object_fill_colorimetry_list (GValue * list,
+     g_value_unset (&colorimetry);
+ }
+ 
++static void
++gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
++    struct v4l2_format *fmt, GValue * list)
++{
++  GstVideoColorimetry cinfo, ret_cinfo;
++  enum v4l2_colorspace colorspace = 0;
++  enum v4l2_quantization range = 0;
++  enum v4l2_ycbcr_encoding matrix = 0;
++  enum v4l2_xfer_func transfer = 0;
++  const gchar *hdr_cnames[] = {
++    GST_VIDEO_COLORIMETRY_BT2100_PQ,
++    NULL
++  };
++  gint i = 0;
++
++  while (hdr_cnames[i] != NULL) {
++    gst_video_colorimetry_from_string (&cinfo, hdr_cnames[i]);
++
++    if (cinfo.primaries == GST_VIDEO_COLOR_PRIMARIES_BT2020) {
++      colorspace = V4L2_COLORSPACE_BT2020;
++    } else {
++      GST_WARNING_OBJECT (v4l2object->dbg_obj,
++          "Colorimetry primaries %d is not expected for %s", cinfo.primaries,
++          hdr_cnames[i]);
++      continue;
++    }
++
++    if (cinfo.matrix == GST_VIDEO_COLOR_MATRIX_BT2020) {
++      matrix = V4L2_YCBCR_ENC_BT2020;
++    } else {
++      GST_WARNING_OBJECT (v4l2object->dbg_obj,
++          "Colorimetry matrix %d is not expected for %s", cinfo.matrix,
++          hdr_cnames[i]);
++      continue;
++    }
++
++    if (cinfo.transfer == GST_VIDEO_TRANSFER_SMPTE2084) {
++      transfer = V4L2_XFER_FUNC_SMPTE2084;
++    } else {
++      GST_WARNING_OBJECT (v4l2object->dbg_obj,
++          "Colorimetry transfer %d is not expected for %s", cinfo.transfer,
++          hdr_cnames[i]);
++      continue;
++    }
++
++    range = V4L2_QUANTIZATION_LIM_RANGE;
++
++    if (V4L2_TYPE_IS_MULTIPLANAR (v4l2object->type)) {
++      fmt->fmt.pix_mp.colorspace = colorspace;
++      fmt->fmt.pix_mp.xfer_func = transfer;
++      fmt->fmt.pix_mp.ycbcr_enc = matrix;
++      fmt->fmt.pix_mp.quantization = range;
++    } else {
++      fmt->fmt.pix.colorspace = colorspace;
++      fmt->fmt.pix.xfer_func = transfer;
++      fmt->fmt.pix.ycbcr_enc = matrix;
++      fmt->fmt.pix.quantization = range;
++    }
++
++    if (gst_v4l2_object_try_fmt (v4l2object, fmt) == 0) {
++      if (gst_v4l2_object_get_colorspace (v4l2object, fmt, &ret_cinfo))
++        if (gst_video_colorimetry_is_equal (&cinfo, &ret_cinfo))
++          gst_v4l2_object_fill_colorimetry_list (list, &cinfo);
++    }
++
++    i++;
++  }
++}
++
+ static void
+ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+     guint32 width, guint32 height, guint32 pixelformat)
+@@ -2643,6 +2712,8 @@ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+     }
+   }
+ 
++  gst_v4l2_object_add_hdr_colorimetry (v4l2object, &fmt, &list);
++
+   if (gst_value_list_get_size (&list) > 0)
+     gst_structure_take_value (s, "colorimetry", &list);
+   else

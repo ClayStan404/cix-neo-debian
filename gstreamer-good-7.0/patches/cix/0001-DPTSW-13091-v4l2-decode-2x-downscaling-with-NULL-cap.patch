@@ -1,0 +1,47 @@
+From 97fabe513171c3546e8ab5523e5d7f101ab96820 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 31 Oct 2024 15:41:15 +0800
+Subject: [PATCH] DPTSW-13091: v4l2: decode 2x downscaling with NULL caps
+ filter
+
+gstreamer av1parse tries to fetch caps from downstream with NULL filter.
+In such case, v4l2 decoder will update width and height in caps with the
+ones in its sink caps. If its sink caps don't have width and height,
+just remove the ones in returned caps.
+
+Change-Id: Ib72d43715a4e92743166a964bb8c59f4d9098595
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 66d8398239..2b15f7dedb 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -473,6 +473,8 @@ gst_v4l2_video_try_downscaling_caps (GstVideoDecoder * decoder,
+     val = gst_structure_get_value (caps_s, "width");
+     if (G_IS_VALUE (val) && G_VALUE_TYPE (val) == GST_TYPE_INT_RANGE)
+       max_w = gst_value_get_int_range_max (val);
++    else if (G_IS_VALUE (val) && G_VALUE_TYPE (val) == G_TYPE_INT)
++      max_w = g_value_get_int (val);
+     else
+       continue;
+ 
+@@ -1341,6 +1343,19 @@ gst_v4l2_video_dec_sink_getcaps (GstVideoDecoder * decoder, GstCaps * filter)
+         result = gst_caps_copy (filter);
+       }
+     }
++  } else if (!gst_caps_is_empty (result) && self->probed_sinkcaps) {
++    /* Update/remove resolution info since down scaling may be applied in src pad */
++    const GValue *val;
++    GstStructure *src = gst_caps_get_structure (self->probed_sinkcaps, 0);
++    GstStructure *dst = gst_caps_get_structure (result, 0);
++    if ((val = gst_structure_get_value (src, "width")))
++      gst_structure_set_value (dst, "width", val);
++    else
++      gst_structure_remove_field (dst, "width");
++    if ((val = gst_structure_get_value (src, "height")))
++      gst_structure_set_value (dst, "height", val);
++    else
++      gst_structure_remove_field (dst, "height");
+   }
+ 
+   GST_DEBUG_OBJECT (self, "Returning sink caps %" GST_PTR_FORMAT, result);

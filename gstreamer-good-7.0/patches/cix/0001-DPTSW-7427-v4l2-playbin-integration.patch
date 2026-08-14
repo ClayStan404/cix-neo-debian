@@ -1,0 +1,137 @@
+From 6b92cbf975a8b4c148a34b284ca52f7d4edebdf2 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 22 Feb 2024 11:09:22 +0800
+Subject: [PATCH] DPTSW-7427: v4l2: playbin integration
+
+Renegotinate src pad caps if there is format change after negotiation
+with downstream elements.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I934ef047af394170f86e776b74adaf2f69110c26
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index 5e63e0826c..f01efebb3e 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -145,15 +145,6 @@ gst_v4l2_buffer_pool_resize_buffer (GstBufferPool * bpool, GstBuffer * buffer)
+   }
+ }
+ 
+-static gboolean
+-gst_v4l2_is_afbc_format (GstVideoFormat format)
+-{
+-  return (format == GST_VIDEO_FORMAT_YUV420_AFBC_8 ||
+-      format == GST_VIDEO_FORMAT_YUV420_AFBC_10 ||
+-      format == GST_VIDEO_FORMAT_YUV422_AFBC_8 ||
+-      format == GST_VIDEO_FORMAT_YUV422_AFBC_10);
+-}
+-
+ static GstFlowReturn
+ gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
+     GstBuffer * src)
+@@ -162,9 +153,8 @@ gst_v4l2_buffer_pool_copy_buffer (GstV4l2BufferPool * pool, GstBuffer * dest,
+ 
+   GST_LOG_OBJECT (pool, "copying buffer");
+ 
+-  if (finfo && (finfo->format != GST_VIDEO_FORMAT_UNKNOWN &&
+-          finfo->format != GST_VIDEO_FORMAT_ENCODED &&
+-          !gst_v4l2_is_afbc_format (finfo->format))) {
++  if (finfo && (GST_VIDEO_FORMAT_INFO_IS_VALID_RAW (finfo) &&
++          !GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo))) {
+     GstVideoFrame src_frame, dest_frame;
+ 
+     GST_DEBUG_OBJECT (pool, "copy video frame");
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index e5083a034c..4ba0e32bad 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -3765,15 +3765,6 @@ store_info:
+   }
+ }
+ 
+-static gboolean
+-is_afbc_format (GstVideoFormat format)
+-{
+-  return (format == GST_VIDEO_FORMAT_YUV420_AFBC_8 ||
+-      format == GST_VIDEO_FORMAT_YUV420_AFBC_10 ||
+-      format == GST_VIDEO_FORMAT_YUV422_AFBC_8 ||
+-      format == GST_VIDEO_FORMAT_YUV422_AFBC_10);
+-}
+-
+ static enum v4l2_field
+ get_v4l2_field_for_info (GstVideoInfo * info)
+ {
+@@ -3784,7 +3775,7 @@ get_v4l2_field_for_info (GstVideoInfo * info)
+       GST_VIDEO_INTERLACE_MODE_ALTERNATE)
+     return V4L2_FIELD_ALTERNATE;
+ 
+-  if (is_afbc_format (GST_VIDEO_INFO_FORMAT (info))) {
++  if (GST_VIDEO_FORMAT_INFO_IS_AFBC (info->finfo)) {
+     switch (GST_VIDEO_INFO_FIELD_ORDER (info)) {
+       case GST_VIDEO_FIELD_ORDER_BOTTOM_FIELD_FIRST:
+         return V4L2_FIELD_SEQ_BT;
+@@ -4904,12 +4895,14 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+       r = &crop.c;
+   }
+   if (r) {
++    const GstVideoFormatInfo *finfo;
+     align.padding_left = r->left;
+     align.padding_top = r->top;
+     align.padding_right = width - r->width - r->left;
+     align.padding_bottom = height - r->height - r->top;
+     /* For AFBC, cropping should be done by downstream, so resolution is not updated */
+-    if (!is_afbc_format (format)) {
++    finfo = gst_video_format_get_info (format);
++    if (!GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo)) {
+       width = r->width;
+       height = r->height;
+     }
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 04177f3fd6..599578cdfb 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -488,6 +488,7 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+   GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
+   GstV4l2Error error = GST_V4L2_ERROR_INIT;
+   GstVideoInfoDmaDrm info;
++  const GstVideoFormatInfo *finfo;
+   GstVideoCodecState *output_state;
+   GstCaps *acquired_caps, *acquired_drm_caps;
+   GstCaps *fixation_caps, *available_caps, *caps, *filter;
+@@ -505,6 +506,7 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+       return TRUE;
+   }
+ 
++re_negotiate:
+   /* init capture fps according to output */
+   GST_V4L2_FPS_D (self->v4l2capture) = GST_V4L2_FPS_D (self->v4l2output);
+   GST_V4L2_FPS_N (self->v4l2capture) = GST_V4L2_FPS_N (self->v4l2output);
+@@ -524,6 +526,7 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+   self->probed_srccaps = gst_v4l2_object_probe_caps (self->v4l2capture,
+       gst_v4l2_object_get_raw_caps ());
+ 
++  finfo = info.vinfo.finfo;
+   /* Create caps from the acquired format, removing the format fields */
+   fixation_caps = gst_caps_new_empty ();
+ 
+@@ -607,6 +610,20 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+ use_acquired_caps:
+   gst_caps_unref (caps);
+ 
++  /*
++   * Check if the format negotiated caps is different from aquired format. If
++   * yes, which is not expected, inactive capture port and re-negotiate using
++   * the updated format.
++   */
++  if (GST_VIDEO_FORMAT_INFO_IS_AFBC (info.vinfo.finfo) !=
++      GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo)) {
++    GST_DEBUG_OBJECT (self, "Negotiated format is %s which is different "
++        "from the aquired format %s. Try to re-negotiated using %s\n",
++        info.vinfo.finfo->name, finfo->name, info.vinfo.finfo->name);
++    GST_V4L2_SET_INACTIVE (self->v4l2capture);
++    goto re_negotiate;
++  }
++
+   /* catch possible bogus driver that don't enumerate the format it actually
+    * returned from G_FMT */
+   if (!self->v4l2capture->fmtdesc)

@@ -1,0 +1,169 @@
+From 83aa6f91b56be49ab29daefe197ffb6f1f98a82c Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Tue, 6 Feb 2024 20:54:24 +0800
+Subject: [PATCH] DPTSW-7186: v4l2: add adaptive downscaling for decoder
+
+If the video stream resolution is larger than the downstream caps, check
+if compose of selection is supported for downscaling. If yes, update
+src pad caps with downscaled resolution based on maximum capability.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I964fbe21fade5ce7a01ae02e2e15e5ae8a579d7c
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 17f4bed1a7..d53e5744f4 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -4938,7 +4938,7 @@ unsupported_format:
+  *
+  * Returns: %TRUE on success, %FALSE on failure.
+  */
+-static gboolean
++gboolean
+ gst_v4l2_object_set_compose (GstV4l2Object * obj,
+     struct v4l2_rect *compose_rect)
+ {
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index 4b14b7e625..e16dd22f79 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -339,6 +339,7 @@ gboolean     gst_v4l2_object_is_raw (GstV4l2Object * obj);
+ gboolean     gst_v4l2_object_set_crop (GstV4l2Object * obj, struct v4l2_rect *result);
+ gboolean     gst_v4l2_object_get_crop_bounds (GstV4l2Object * obj, struct v4l2_rect *bounds);
+ gboolean     gst_v4l2_object_get_crop_default (GstV4l2Object * obj, struct v4l2_rect *bounds);
++gboolean     gst_v4l2_object_set_compose (GstV4l2Object * obj, struct v4l2_rect *rect);
+ 
+ /* TODO Move to proper namespace */
+ /* open/close the device */
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index cdb0f7bbbc..04177f3fd6 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -403,6 +403,85 @@ gst_v4l2_video_remove_padding (GstCapsFeatures * features,
+   return TRUE;
+ }
+ 
++static gboolean
++gst_v4l2_video_update_resolution (GstVideoDecoder * decoder,
++    GstCaps * caps, guint max_width, gboolean set_compose)
++{
++  GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
++  GstStructure *s = gst_caps_get_structure (caps, 0);
++  gboolean updated = FALSE;
++  const GValue *val;
++
++  if ((val = gst_structure_get_value (s, "width"))) {
++    gint w = 0, h = 0;
++    if (G_VALUE_TYPE (val) == G_TYPE_INT)
++      w = g_value_get_int (val);
++    if ((val = gst_structure_get_value (s, "height")))
++      if (G_VALUE_TYPE (val) == G_TYPE_INT)
++        h = g_value_get_int (val);
++    if (max_width < w) {
++      /* If resolution exceeds downstream caps, try to set compose region of selection to downscale */
++      struct v4l2_rect rect = { 0 };
++      rect.width = max_width;
++      rect.height = h * max_width / w;
++      if (set_compose) {
++        if (!gst_v4l2_object_set_compose (self->v4l2capture, &rect))
++          return FALSE;
++      }
++      if (rect.width <= max_width) {
++        /* Now update width and height in caps with driver returned compose region */
++        GValue v = G_VALUE_INIT;
++        g_value_init (&v, G_TYPE_INT);
++        g_value_set_int (&v, rect.width);
++        gst_structure_set_value (s, "width", &v);
++        g_value_set_int (&v, rect.height);
++        gst_structure_set_value (s, "height", &v);
++        updated = TRUE;
++      }
++    }
++  }
++
++  return updated;
++}
++
++static GstCaps *
++gst_v4l2_video_try_downscaling_caps (GstVideoDecoder * decoder,
++    GstCaps * filter, gboolean downscale)
++{
++  /* if hardware supports scaling, try to adjust width and height in filter, and get caps again */
++  GstV4l2VideoDec *self = GST_V4L2_VIDEO_DEC (decoder);
++  GstCaps *peer_caps = gst_pad_peer_query_caps (decoder->srcpad, NULL);
++  gint peer_caps_size = gst_caps_get_size (peer_caps);
++  gint caps_size = gst_caps_get_size (filter);
++  GstCaps *out_caps = gst_caps_new_empty ();
++  gint i, j;
++
++  if (!out_caps)
++    return NULL;
++
++  for (i = 0; i < peer_caps_size; i++) {
++    const GstStructure *caps_s = gst_caps_get_structure (peer_caps, i);
++    const GValue *val;
++    gint max_w = G_MAXINT;
++    val = gst_structure_get_value (caps_s, "width");
++    if (G_IS_VALUE (val) && G_VALUE_TYPE (val) == GST_TYPE_INT_RANGE)
++      max_w = gst_value_get_int_range_max (val);
++    else
++      continue;
++
++    for (j = 0; j < caps_size; j++) {
++      GstCaps *tmp = gst_caps_copy_nth (filter, j);
++      if (gst_v4l2_video_update_resolution (decoder, tmp, max_w, downscale)) {
++        out_caps = gst_caps_merge (out_caps, tmp);
++      }
++    }
++  }
++
++  gst_caps_unref (peer_caps);
++  GST_DEBUG_OBJECT (self, "updated filter %" GST_PTR_FORMAT, out_caps);
++  return out_caps;
++}
++
+ static gboolean
+ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+ {
+@@ -481,6 +560,15 @@ gst_v4l2_video_dec_negotiate (GstVideoDecoder * decoder)
+   gst_caps_unref (fixation_caps);
+   gst_caps_unref (available_caps);
+   caps = gst_pad_peer_query_caps (decoder->srcpad, filter);
++  if (gst_caps_is_empty (caps) && filter) {
++    GstCaps *filter2 =
++        gst_v4l2_video_try_downscaling_caps (decoder, filter, TRUE);
++    if (filter2 && !gst_caps_is_empty (filter2)) {
++      gst_caps_unref (caps);
++      caps = gst_pad_peer_query_caps (decoder->srcpad, filter2);
++      gst_caps_unref (filter2);
++    }
++  }
+   gst_caps_unref (filter);
+ 
+   GST_DEBUG_OBJECT (self, "Possible decoded caps: %" GST_PTR_FORMAT, caps);
+@@ -1212,6 +1300,25 @@ gst_v4l2_video_dec_sink_getcaps (GstVideoDecoder * decoder, GstCaps * filter)
+   result = gst_video_decoder_proxy_getcaps (decoder, self->probed_sinkcaps,
+       filter);
+ 
++  /*
++   * If result caps is empty due to too big video resolution, just return filter caps,
++   * and will try downscaling post-processing in gst_v4l2_video_dec_setup_capture()
++   */
++  if (gst_caps_is_empty (result) && filter) {
++    GstCaps *filter2 =
++        gst_v4l2_video_try_downscaling_caps (decoder, filter, FALSE);
++    if (filter2 && !gst_caps_is_empty (filter2)) {
++      gst_caps_unref (result);
++      result = gst_video_decoder_proxy_getcaps (decoder, self->probed_sinkcaps,
++          filter2);
++      gst_caps_unref (filter2);
++      if (result && !gst_caps_is_empty (result)) {
++        gst_caps_unref (result);
++        result = gst_caps_copy (filter);
++      }
++    }
++  }
++
+   GST_DEBUG_OBJECT (self, "Returning sink caps %" GST_PTR_FORMAT, result);
+ 
+   return result;

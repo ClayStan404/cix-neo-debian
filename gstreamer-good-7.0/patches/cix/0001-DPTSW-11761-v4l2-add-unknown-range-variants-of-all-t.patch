@@ -1,0 +1,31 @@
+From ed84b98ec704cb59e8799ffd996e318ee149bc9e Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 13 Sep 2024 13:37:16 +0800
+Subject: [PATCH] DPTSW-11761: v4l2: add unknown-range variants of all the
+ colorspaces
+
+Add unknown-range variants of all the colorspaces and let downstream to
+decide full-range or limited-range.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Ia31194f0d575d7b6ab952dec4d598f3f9d400f5c
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 0be9d0f522..4645f019e7 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2709,8 +2709,13 @@ gst_v4l2_object_add_colorspace (GstV4l2Object * v4l2object, GstStructure * s,
+         colorspace = fmt.fmt.pix.colorspace;
+ 
+       if (colorspace == req_cspace) {
+-        if (gst_v4l2_object_get_colorspace (v4l2object, &fmt, &cinfo))
++        if (gst_v4l2_object_get_colorspace (v4l2object, &fmt, &cinfo)) {
+           gst_v4l2_object_fill_colorimetry_list (&list, &cinfo);
++          /* always add unknown-range variants of all the colorspaces
++           * and let downstream to decide full-range or limited-range */
++          cinfo.range = GST_VIDEO_COLOR_RANGE_UNKNOWN;
++          gst_v4l2_object_fill_colorimetry_list (&list, &cinfo);
++        }
+         if (colorspace == V4L2_COLORSPACE_REC709) {
+           /* support for full-range variants of colorspaces V4L2_COLORSPACE_REC709
+            * (such as Apple's full-range bt709 variant 1:3:5:1) */

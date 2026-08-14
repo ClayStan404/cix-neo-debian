@@ -1,0 +1,27 @@
+From f66fe595bedb45c62a7e84b4d7e03d478155d61e Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Wed, 20 Nov 2024 17:43:37 +0800
+Subject: [PATCH] DPTSW-13428: v4l2: increase sink pad min buffers to 2
+
+One input buffer may not be enough as VPU could hold one before
+flushing or the next input is enqueued. In this case, it would be hang
+in dequeue buffer.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Iedcb0cd1d31edfaa66fd47a1c94a1ec154a53811
+
+diff --git a/sys/v4l2/gstv4l2object.h b/sys/v4l2/gstv4l2object.h
+index 6a688fb9e2..496454dd6d 100644
+--- a/sys/v4l2/gstv4l2object.h
++++ b/sys/v4l2/gstv4l2object.h
+@@ -48,7 +48,9 @@ typedef struct _GstV4l2ObjectClassHelper GstV4l2ObjectClassHelper;
+ 
+ /* size of v4l2 buffer pool in streaming case, obj->info needs to be valid */
+ #define GST_V4L2_MIN_BUFFERS(obj) \
+-    (obj->info.vinfo.size > GST_V4L2_LARGE_BUFFER (obj) ? 1 : 6)
++    (obj->info.vinfo.size > GST_V4L2_LARGE_BUFFER (obj) ? \
++      (V4L2_TYPE_IS_OUTPUT (obj->type) ? 2 : 1) : \
++      6)
+ 
+ /* max frame width/height */
+ #define GST_V4L2_MAX_SIZE (1<<15) /* 2^15 == 32768 */

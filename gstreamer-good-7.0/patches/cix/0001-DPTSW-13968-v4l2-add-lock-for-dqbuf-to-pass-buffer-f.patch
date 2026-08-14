@@ -1,0 +1,47 @@
+From 0e55385ed00837ed71c6e12d51065a5b2039ed83 Mon Sep 17 00:00:00 2001
+From: "xinqi.wang" <XinQi.Wang@cixtech.com>
+Date: Tue, 21 Jan 2025 16:25:58 +0800
+Subject: [PATCH] DPTSW-13968: v4l2: add lock for dqbuf to pass buffer flag
+ check
+
+When totem & chromium play video together, totem will crash after VPU
+dequeue frame buffer done but group buffer QUEUED flag is not enabled.
+In gstreamer, dequeue that frame buffer finished before queue is done.
+Add pool lock to keep frame buffer dequeue finished after queue start in
+gstreamer.
+
+Signed-off-by: Xinqi.Wang <xinqi.wang@cixtech.com>
+Change-Id: Ic650f4b16be1d97c08901ca98372d9acd2cf3b2e
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index 92b8966620..694f8a0e58 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -1348,12 +1348,17 @@ gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer,
+ 
+   GST_LOG_OBJECT (pool, "dequeueing a buffer");
+ 
++  GST_OBJECT_LOCK (pool);
+   res = gst_v4l2_allocator_dqbuf (pool->vallocator, &group);
+ 
+-  if (res == GST_V4L2_FLOW_LAST_BUFFER)
++  if (res == GST_V4L2_FLOW_LAST_BUFFER) {
++    GST_OBJECT_UNLOCK (pool);
+     goto eos;
+-  if (res != GST_FLOW_OK)
++  }
++  if (res != GST_FLOW_OK) {
++    GST_OBJECT_UNLOCK (pool);
+     goto dqbuf_failed;
++  }
+ 
+   if (group->buffer.flags & V4L2_BUF_FLAG_ERROR) {
+     if (V4L2_TYPE_IS_OUTPUT (obj->type))
+@@ -1367,6 +1372,7 @@ gst_v4l2_buffer_pool_dqbuf (GstV4l2BufferPool * pool, GstBuffer ** buffer,
+   old_buffer_state =
+       g_atomic_int_and (&pool->buffer_state[group->buffer.index],
+       ~BUFFER_STATE_QUEUED);
++  GST_OBJECT_UNLOCK (pool);
+   if (!(old_buffer_state & BUFFER_STATE_QUEUED))
+     goto no_buffer;
+ 

@@ -1,0 +1,128 @@
+From 31aabd2ab936ec4392572febef5b0a5594d27481 Mon Sep 17 00:00:00 2001
+From: CIX Build System <build@cixtech.com>
+Date: Fri, 14 Aug 2026 17:18:17 +0800
+Subject: [PATCH] video: treat AFBC formats as passthrough-only
+
+
+diff --git a/gst-libs/gst/video/video-format.h b/gst-libs/gst/video/video-format.h
+index afcbffa4..0e576505 100644
+--- a/gst-libs/gst/video/video-format.h
++++ b/gst-libs/gst/video/video-format.h
+@@ -1235,7 +1235,9 @@ gconstpointer  gst_video_format_get_palette          (GstVideoFormat format, gsi
+  *
+  * Since: 1.24
+  */
+-#define GST_VIDEO_FORMATS_ANY_STR "DMA_DRM, " GST_VIDEO_FORMATS_ALL_STR
++#define GST_VIDEO_FORMATS_ANY_STR "DMA_DRM, YUV420_AFBC_8, " \
++    "YUV420_AFBC_10, YUV422_AFBC_8, YUV422_AFBC_10, " \
++    GST_VIDEO_FORMATS_ALL_STR
+ 
+ /**
+  * GST_VIDEO_FORMATS_ALL:
+diff --git a/tests/check/elements/videoconvert.c b/tests/check/elements/videoconvert.c
+index 420564a9..787efb6f 100644
+--- a/tests/check/elements/videoconvert.c
++++ b/tests/check/elements/videoconvert.c
+@@ -76,6 +76,10 @@ check_pad_template (GstPadTemplate * tmpl)
+     if (i == GST_VIDEO_FORMAT_DMA_DRM)
+       continue;
+ 
++    if (GST_VIDEO_FORMAT_INFO_IS_AFBC (
++            gst_video_format_get_info ((GstVideoFormat) i)))
++      continue;
++
+     if (!formats_supported[i]) {
+       g_error ("videoconvert doesn't support format '%s'",
+           gst_video_format_to_string ((GstVideoFormat) i));
+diff --git a/tests/check/elements/videoscale.c b/tests/check/elements/videoscale.c
+index 2c6ff800..4b8ea11d 100644
+--- a/tests/check/elements/videoscale.c
++++ b/tests/check/elements/videoscale.c
+@@ -76,6 +76,10 @@ check_pad_template (GstPadTemplate * tmpl)
+   gst_caps_unref (caps);
+ 
+   for (i = 2; i < GST_VIDEO_FORMAT_LAST; ++i) {
++    if (GST_VIDEO_FORMAT_INFO_IS_AFBC (
++            gst_video_format_get_info ((GstVideoFormat) i)))
++      continue;
++
+     if (!formats_supported[i]) {
+       const gchar *fmt_str = gst_video_format_to_string ((GstVideoFormat) i);
+ 
+diff --git a/tests/check/libs/video.c b/tests/check/libs/video.c
+index 78a17861..b49a4c76 100644
+--- a/tests/check/libs/video.c
++++ b/tests/check/libs/video.c
+@@ -370,7 +370,7 @@ GST_START_TEST (test_video_formats_all)
+   GstStructure *s;
+   const GValue *val, *list_val;
+   GstCaps *caps;
+-  guint num, n;
++  guint num, n, expected;
+ 
+   caps = gst_caps_from_string ("video/x-raw, format=" GST_VIDEO_FORMATS_ALL);
+   s = gst_caps_get_structure (caps, 0);
+@@ -389,8 +389,8 @@ GST_START_TEST (test_video_formats_all)
+     fail_if (gst_video_format_from_string (fmt_str) ==
+         GST_VIDEO_FORMAT_UNKNOWN);
+   }
+-  /* Take into account GST_VIDEO_FORMAT_ENCODED, UNKNOWN and DMA_DRM. */
+-  fail_unless_equals_int (num, GST_VIDEO_FORMAT_LAST - 3);
++  gst_video_formats_raw (&expected);
++  fail_unless_equals_int (num, expected);
+ 
+   gst_caps_unref (caps);
+ }
+@@ -419,6 +419,9 @@ GST_START_TEST (test_video_formats_pack_unpack)
+     vfinfo = gst_video_format_get_info (fmt);
+     fail_unless (vfinfo != NULL);
+ 
++    if (GST_VIDEO_FORMAT_INFO_IS_AFBC (vfinfo))
++      continue;
++
+     unpackinfo = gst_video_format_get_info (vfinfo->unpack_format);
+     fail_unless (unpackinfo != NULL);
+ 
+@@ -2188,7 +2191,8 @@ GST_START_TEST (test_video_pack_unpack2)
+     finfo = gst_video_format_get_info (format);
+     fail_unless (finfo != NULL);
+ 
+-    if (GST_VIDEO_FORMAT_INFO_HAS_PALETTE (finfo))
++    if (GST_VIDEO_FORMAT_INFO_HAS_PALETTE (finfo) ||
++        GST_VIDEO_FORMAT_INFO_IS_AFBC (finfo))
+       continue;
+ 
+     fuinfo = gst_video_format_get_info (finfo->unpack_format);
+@@ -2518,6 +2522,9 @@ run_video_color_convert (ColorType in_type, ColorType out_type)
+     if (infmt == GST_VIDEO_FORMAT_DMA_DRM)
+       continue;
+ 
++    if (GST_VIDEO_FORMAT_INFO_IS_AFBC (gst_video_format_get_info (infmt)))
++      continue;
++
+     if (!check_video_format_is_type (infmt, in_type))
+       continue;
+ 
+@@ -2536,6 +2543,9 @@ run_video_color_convert (ColorType in_type, ColorType out_type)
+       if (outfmt == GST_VIDEO_FORMAT_DMA_DRM)
+         continue;
+ 
++      if (GST_VIDEO_FORMAT_INFO_IS_AFBC (gst_video_format_get_info (outfmt)))
++        continue;
++
+       if (!check_video_format_is_type (outfmt, out_type))
+         continue;
+ 
+@@ -2630,6 +2640,9 @@ GST_START_TEST (test_video_size_convert)
+     if (infmt == GST_VIDEO_FORMAT_DMA_DRM)
+       continue;
+ 
++    if (GST_VIDEO_FORMAT_INFO_IS_AFBC (gst_video_format_get_info (infmt)))
++      continue;
++
+     fail_unless (gst_video_info_set_format (&ininfo, infmt, WIDTH_IN,
+             HEIGHT_IN));
+     inbuffer = gst_buffer_new_and_alloc (ininfo.size);
+-- 
+2.47.3
+

@@ -1,0 +1,79 @@
+From ccda226a73e5c48beca72b6e565cb9635ee6c2d3 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 3 Nov 2025 09:36:02 +0800
+Subject: [PATCH] DPTSW-20821: fix eos and source change racing issue
+
+If decoder receives EOS event from upstream before it gets SOURCE_CHANGE
+event from driver, wait for source change event in
+gst_v4l2_video_dec_finish().
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: Id94c3bfe458ff32cc6e86b56815f4c9d81c560d8
+
+diff --git a/sys/v4l2/gstv4l2videodec.c b/sys/v4l2/gstv4l2videodec.c
+index 2c9b8516f4..06823b4134 100644
+--- a/sys/v4l2/gstv4l2videodec.c
++++ b/sys/v4l2/gstv4l2videodec.c
+@@ -780,7 +780,7 @@ gst_v4l2_video_dec_finish (GstVideoDecoder * decoder)
+   self->draining = FALSE;
+ 
+   g_mutex_lock (&self->decoding_lock);
+-  while (!self->decoding)
++  while (self->wait_for_source_change)
+     g_cond_wait (&self->decoding_cond, &self->decoding_lock);
+   g_mutex_unlock (&self->decoding_lock);
+ 
+@@ -910,6 +910,7 @@ gst_v4l2_video_dec_wait_for_src_ch (GstV4l2VideoDec * self)
+    * looking for the source change event */
+   if (flowret == GST_V4L2_FLOW_RESOLUTION_CHANGE) {
+     self->wait_for_source_change = FALSE;
++    g_cond_signal (&self->decoding_cond);
+     flowret = GST_FLOW_OK;
+   } else if (flowret == GST_FLOW_OK) {
+     /* A buffer would be unexpected, in this case just terminate */
+@@ -999,8 +1000,6 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
+       ret = gst_v4l2_buffer_pool_process (cpool, &buffer, NULL);
+       if (cpool)
+         gst_object_unref (cpool);
+-      self->decoding = TRUE;
+-      g_cond_signal (&self->decoding_cond);
+     }
+   } while (ret == GST_V4L2_FLOW_CORRUPTED_BUFFER);
+ 
+@@ -1084,8 +1083,6 @@ gst_v4l2_video_dec_loop (GstVideoDecoder * decoder)
+ 
+ beach:
+   if (ret == GST_V4L2_FLOW_RESOLUTION_CHANGE) {
+-    self->decoding = TRUE;
+-    g_cond_signal (&self->decoding_cond);
+     GST_VIDEO_DECODER_STREAM_LOCK (decoder);
+     self->draining = TRUE;
+     GST_VIDEO_DECODER_STREAM_UNLOCK (decoder);
+@@ -1493,7 +1490,6 @@ gst_v4l2_video_dec_finalize (GObject * object)
+ 
+   g_mutex_clear (&self->decoding_lock);
+   g_cond_clear (&self->decoding_cond);
+-  self->decoding = FALSE;
+ }
+ 
+ static void
+@@ -1525,7 +1521,6 @@ gst_v4l2_video_dec_subinstance_init (GTypeInstance * instance, gpointer g_class)
+ 
+   g_mutex_init (&self->decoding_lock);
+   g_cond_init (&self->decoding_cond);
+-  self->decoding = FALSE;
+ }
+ 
+ static void
+diff --git a/sys/v4l2/gstv4l2videodec.h b/sys/v4l2/gstv4l2videodec.h
+index ea92ecddc9..fa36393e23 100644
+--- a/sys/v4l2/gstv4l2videodec.h
++++ b/sys/v4l2/gstv4l2videodec.h
+@@ -64,7 +64,6 @@ struct _GstV4l2VideoDec
+   GstFlowReturn output_flow;
+   GMutex decoding_lock;
+   GCond decoding_cond;
+-  gboolean decoding;
+ 
+   /* Source Change Events */
+   gboolean wait_for_source_change;

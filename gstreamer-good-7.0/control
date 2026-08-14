@@ -1,0 +1,3 @@
+Source: gst-plugins-good1.0
+Build-Depends:
+ cix-vpu-driver-dev (>= 1.0.1)

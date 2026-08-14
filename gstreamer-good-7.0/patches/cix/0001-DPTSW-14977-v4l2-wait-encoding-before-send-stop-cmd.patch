@@ -1,0 +1,74 @@
+From 40d84f6c8738c03738417384325b92c5dd460478 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Mon, 17 Feb 2025 19:41:36 +0800
+Subject: [PATCH] DPTSW-14977: v4l2: wait encoding before send stop cmd
+
+Add a gcond to check encode status. Before sending V4L2_ENC_CMD_STOP to
+encoder, make sure encode is started. Otherwise, VPU firmware could be
+stopped early before output the first frame, which is not expected
+behavior.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I8d994d34ece989e40e5f8617a8c48a7504a774e0
+
+diff --git a/sys/v4l2/gstv4l2videoenc.c b/sys/v4l2/gstv4l2videoenc.c
+index 1cf09dae03..1764a94b44 100644
+--- a/sys/v4l2/gstv4l2videoenc.c
++++ b/sys/v4l2/gstv4l2videoenc.c
+@@ -282,6 +282,11 @@ gst_v4l2_video_enc_finish (GstVideoEncoder * encoder)
+    * pushed from the src pad task thread */
+   GST_VIDEO_ENCODER_STREAM_UNLOCK (encoder);
+ 
++  g_mutex_lock (&self->encoding_lock);
++  while (!self->encoding)
++    g_cond_wait (&self->encoding_cond, &self->encoding_lock);
++  g_mutex_unlock (&self->encoding_lock);
++
+   if (gst_v4l2_encoder_cmd (self->v4l2capture, V4L2_ENC_CMD_STOP, 0)) {
+     GstTask *task = encoder->srcpad->task;
+ 
+@@ -671,6 +676,8 @@ gst_v4l2_video_enc_loop (GstVideoEncoder * encoder)
+   ret = gst_v4l2_buffer_pool_process (cpool, &buffer, NULL);
+   if (cpool)
+     gst_object_unref (cpool);
++  self->encoding = TRUE;
++  g_cond_signal (&self->encoding_cond);
+   if (ret != GST_FLOW_OK)
+     goto beach;
+ 
+@@ -1088,6 +1095,10 @@ gst_v4l2_video_enc_finalize (GObject * object)
+   gst_v4l2_object_destroy (self->v4l2output);
+ 
+   G_OBJECT_CLASS (parent_class)->finalize (object);
++
++  g_mutex_clear (&self->encoding_lock);
++  g_cond_clear (&self->encoding_cond);
++  self->encoding = FALSE;
+ }
+ 
+ 
+@@ -1114,6 +1125,10 @@ gst_v4l2_video_enc_subinstance_init (GTypeInstance * instance, gpointer g_class)
+       GST_OBJECT (GST_VIDEO_ENCODER_SRC_PAD (self)),
+       V4L2_BUF_TYPE_VIDEO_CAPTURE, klass->default_device,
+       gst_v4l2_get_input, gst_v4l2_set_input, NULL);
++
++  g_mutex_init (&self->encoding_lock);
++  g_cond_init (&self->encoding_cond);
++  self->encoding = FALSE;
+ }
+ 
+ static void
+diff --git a/sys/v4l2/gstv4l2videoenc.h b/sys/v4l2/gstv4l2videoenc.h
+index e06c52880c..4cd974a329 100644
+--- a/sys/v4l2/gstv4l2videoenc.h
++++ b/sys/v4l2/gstv4l2videoenc.h
+@@ -64,6 +64,9 @@ struct _GstV4l2VideoEnc
+   GstVideoCodecState *input_state;
+   gboolean active;
+   GstFlowReturn output_flow;
++  GMutex encoding_lock;
++  GCond encoding_cond;
++  gboolean encoding;
+ 
+ };
+ 

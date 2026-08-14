@@ -1,0 +1,98 @@
+From f30c4a0576abd1725e145f6a2df6ce6948be6d10 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Sun, 28 Sep 2025 16:12:27 +0800
+Subject: [PATCH] DPTSW-20007: v4l2: add bt2100-hlg colorimetry support
+
+1. Update videodev2.h header to align with the kernel header.
+2. Add bt2100-hlg colorimetry to decoder caps
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I5c1dd4b28424c3cd2821b969c8c82404ae9da9fc
+(cherry picked from commit 580509e54f6bf50592c3f3799b4eaa5a82cef99f)
+
+diff --git a/sys/v4l2/ext/videodev2.h b/sys/v4l2/ext/videodev2.h
+index 2ceb1ca32d..ad20917a42 100644
+--- a/sys/v4l2/ext/videodev2.h
++++ b/sys/v4l2/ext/videodev2.h
+@@ -282,6 +282,13 @@ enum v4l2_xfer_func {
+ 	V4L2_XFER_FUNC_NONE        = 5,
+ 	V4L2_XFER_FUNC_DCI_P3      = 6,
+ 	V4L2_XFER_FUNC_SMPTE2084   = 7,
++	V4L2_XFER_FUNC_GAMMA22     = 8,
++	V4L2_XFER_FUNC_GAMMA28     = 9,
++	V4L2_XFER_FUNC_HLG         = 10,
++	V4L2_XFER_FUNC_BT1361      = 11,
++	V4L2_XFER_FUNC_ST428       = 12,
++	V4L2_XFER_FUNC_BT2020_10   = 13,
++	V4L2_XFER_FUNC_BT2020_12   = 14,
+ };
+ 
+ /*
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 791a0982ca..3815963825 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -2437,6 +2437,12 @@ gst_v4l2_object_get_colorspace (GstV4l2Object * v4l2object,
+     case V4L2_XFER_FUNC_SMPTE2084:
+       cinfo->transfer = GST_VIDEO_TRANSFER_SMPTE2084;
+       break;
++    case V4L2_XFER_FUNC_BT2020_10:
++      cinfo->transfer = GST_VIDEO_TRANSFER_BT2020_10;
++      break;
++    case V4L2_XFER_FUNC_HLG:
++      cinfo->transfer = GST_VIDEO_TRANSFER_ARIB_STD_B67;
++      break;
+     case V4L2_XFER_FUNC_DEFAULT:
+       /* nothing, just use defaults for colorspace */
+       break;
+@@ -2614,6 +2620,7 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+   const gchar *hdr_cnames[] = {
+     GST_VIDEO_COLORIMETRY_BT2100_PQ,
+     GST_VIDEO_COLORIMETRY_BT2020_10,
++    GST_VIDEO_COLORIMETRY_BT2100_HLG,
+     NULL
+   };
+   gint i = 0;
+@@ -2627,6 +2634,7 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+       GST_WARNING_OBJECT (v4l2object->dbg_obj,
+           "Colorimetry primaries %d is not expected for %s", cinfo.primaries,
+           hdr_cnames[i]);
++      i++;
+       continue;
+     }
+ 
+@@ -2636,19 +2644,21 @@ gst_v4l2_object_add_hdr_colorimetry (GstV4l2Object * v4l2object,
+       GST_WARNING_OBJECT (v4l2object->dbg_obj,
+           "Colorimetry matrix %d is not expected for %s", cinfo.matrix,
+           hdr_cnames[i]);
++      i++;
+       continue;
+     }
+ 
+     if (cinfo.transfer == GST_VIDEO_TRANSFER_SMPTE2084) {
+       transfer = V4L2_XFER_FUNC_SMPTE2084;
+     } else if (cinfo.transfer == GST_VIDEO_TRANSFER_BT2020_10) {
+-      /* BT2020 10bit transfer function is not defined in V4L2.
+-       * Use BT709 instead, which is equivalent. */
+-      transfer = V4L2_XFER_FUNC_709;
++      transfer = V4L2_XFER_FUNC_BT2020_10;
++    } else if (cinfo.transfer == GST_VIDEO_TRANSFER_ARIB_STD_B67) {
++      transfer = V4L2_XFER_FUNC_HLG;
+     } else {
+       GST_WARNING_OBJECT (v4l2object->dbg_obj,
+           "Colorimetry transfer %d is not expected for %s", cinfo.transfer,
+           hdr_cnames[i]);
++      i++;
+       continue;
+     }
+ 
+@@ -4160,6 +4170,9 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
+           "LOG 100, 316 transfer functions not supported");
+       /* FIXME No known sensible default, maybe AdobeRGB ? */
+       break;
++    case GST_VIDEO_TRANSFER_ARIB_STD_B67:
++      transfer = V4L2_XFER_FUNC_HLG;
++      break;
+     case GST_VIDEO_TRANSFER_UNKNOWN:
+       /* We let the driver pick a default one */
+       break;

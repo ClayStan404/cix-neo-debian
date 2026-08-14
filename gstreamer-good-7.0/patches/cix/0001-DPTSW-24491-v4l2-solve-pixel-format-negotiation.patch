@@ -1,0 +1,52 @@
+From b408070790141fd006fb85ec5ac2ab892a017b08 Mon Sep 17 00:00:00 2001
+From: taojiang <tao.jiang@cixtech.com>
+Date: Tue, 26 May 2026 15:16:22 +0800
+Subject: [PATCH] DPTSW-24491: v4l2: solve pixel format negotiation
+
+- vpu driver return a pixel format from VIDIOC_G_FMT that
+  was not listed in VIDIOC_ENUM_FMT (e.g. YUV420_AFBC_8 returned by G_FMT but
+  only NV12/YU12 etc. enumerated)
+  default capture format is afbc8,but some stream can not support.
+  like av1 stream but only contain Y pixel.
+
+- This causes acquire_format() to fail with
+  "V4L2 format not supported" before the AFBC->non-AFBC negotiation logic
+  has a chance to run.
+
+  Fall back to the first enumerated format (typically NV12) so negotiation
+  can continue and trigger the existing AFBC->NV12 fallback path.
+
+Signed-off-by: taojiang <tao.jiang@cixtech.com>
+Change-Id: I7044fe85291bbe85cb61c29c205a2377dcc08f12
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index db6fe67462..21d1350d01 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -5063,8 +5063,24 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+ 
+   fmtdesc = gst_v4l2_object_get_format_from_fourcc (v4l2object,
+       fmt.fmt.pix.pixelformat);
+-  if (fmtdesc == NULL)
+-    goto unsupported_format;
++  if (fmtdesc == NULL) {
++    /*
++     * Some drivers return a format from G_FMT that was not enumerated
++     * via ENUM_FMT. Fall back to the first enumerated format so
++     * negotiation can continue (e.g. to trigger AFBC->non-AFBC fallback).
++     */
++    GSList *walk = gst_v4l2_object_get_format_list (v4l2object);
++    if (walk)
++      fmtdesc = walk->data;
++    else
++      goto unsupported_format;
++    GST_WARNING_OBJECT (v4l2object->dbg_obj,
++        "G_FMT returned fourcc %" GST_FOURCC_FORMAT
++        " not found in ENUM_FMT list, falling back to first enumerated"
++        " format %" GST_FOURCC_FORMAT,
++        GST_FOURCC_ARGS (fmt.fmt.pix.pixelformat),
++        GST_FOURCC_ARGS (fmtdesc->pixelformat));
++  }
+ 
+   /* No need to care about mplane, the four first params are the same */
+   desc = gst_v4l2_object_get_desc_from_v4l2fourcc (fmt.fmt.pix.pixelformat);

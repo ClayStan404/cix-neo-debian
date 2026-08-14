@@ -1,0 +1,109 @@
+From 97c86da57f18e7d7f376aff03403a90761a7086a Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Wed, 6 Dec 2023 17:57:54 +0800
+Subject: [PATCH] DPTSW-7287: v4l2: add cropping metadata
+
+Add cropping metadata to source buffers in AFBC case so downstream plug-in
+like kmssink can get right cropped region. For non-AFBC case, should be
+no cropping metadata as it should be done by the v4l2 plug-in
+internally.
+
+Change-Id: I691579f047751997937a7abf8c43787e92804afd
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+
+diff --git a/sys/v4l2/gstv4l2bufferpool.c b/sys/v4l2/gstv4l2bufferpool.c
+index c0bbf2c326..5e63e0826c 100644
+--- a/sys/v4l2/gstv4l2bufferpool.c
++++ b/sys/v4l2/gstv4l2bufferpool.c
+@@ -35,6 +35,7 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
++#include "mvx-v4l2-controls.h"
+ #include "gst/video/video.h"
+ #include "gst/video/gstvideometa.h"
+ #include "gst/video/gstvideopool.h"
+@@ -458,6 +459,56 @@ done:
+   return ret;
+ }
+ 
++static void
++gst_v4l2_buffer_pool_add_crop_meta (GstV4l2BufferPool * pool,
++    GstBuffer * buffer)
++{
++  GstV4l2Object *obj = pool->obj;
++
++  if (obj->type == V4L2_BUF_TYPE_VIDEO_CAPTURE ||
++      obj->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
++    guint32 pixelformat;
++    if (!obj->fmtdesc)
++      return;
++
++    pixelformat = obj->fmtdesc->pixelformat;
++    if (pixelformat == V4L2_PIX_FMT_YUV420_AFBC_8 ||
++        pixelformat == V4L2_PIX_FMT_YUV420_AFBC_10 ||
++        pixelformat == V4L2_PIX_FMT_YUV422_AFBC_8 ||
++        pixelformat == V4L2_PIX_FMT_YUV422_AFBC_10) {
++      GstVideoCropMeta *crop_meta;
++      struct v4l2_selection sel;
++      struct v4l2_crop crop;
++      struct v4l2_rect *r = NULL;
++      /* Use the default compose rectangle */
++      memset (&sel, 0, sizeof (struct v4l2_selection));
++      sel.type = obj->type;
++      sel.target = V4L2_SEL_TGT_COMPOSE_DEFAULT;
++      if (obj->ioctl (obj->video_fd, VIDIOC_G_SELECTION, &sel) >= 0) {
++        r = &sel.r;
++      } else {
++        /* For ancient kernels, fall back to G_CROP */
++        crop.type = obj->type;
++        if (obj->ioctl (obj->video_fd, VIDIOC_G_CROP, &crop) >= 0) {
++          r = &crop.c;
++        }
++      }
++
++      if (r) {
++        crop_meta = gst_buffer_add_video_crop_meta (buffer);
++        crop_meta->x = r->left;
++        crop_meta->y = r->top;
++        crop_meta->width = r->width;
++        crop_meta->height = r->height;
++        GST_DEBUG_OBJECT (pool, "crop meta (%d, %d) %dx%d", crop_meta->x,
++            crop_meta->y, crop_meta->width, crop_meta->height);
++      }
++    }
++  }
++
++  return;
++}
++
+ static GstFlowReturn
+ gst_v4l2_buffer_pool_alloc_buffer (GstBufferPool * bpool, GstBuffer ** buffer,
+     GstBufferPoolAcquireParams * params)
+@@ -521,6 +572,8 @@ gst_v4l2_buffer_pool_alloc_buffer (GstBufferPool * bpool, GstBuffer ** buffer,
+       gst_video_meta_set_alignment (videometa, obj->align);
+   }
+ 
++  gst_v4l2_buffer_pool_add_crop_meta (pool, newbuf);
++
+   *buffer = newbuf;
+ 
+   return GST_FLOW_OK;
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index ee970842b5..17f4bed1a7 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -4837,8 +4837,11 @@ gst_v4l2_object_acquire_format (GstV4l2Object * v4l2object,
+     align.padding_top = r->top;
+     align.padding_right = width - r->width - r->left;
+     align.padding_bottom = height - r->height - r->top;
+-    width = r->width;
+-    height = r->height;
++    /* For AFBC, cropping should be done by downstream, so resolution is not updated */
++    if (!is_afbc_format (format)) {
++      width = r->width;
++      height = r->height;
++    }
+   }
+ 
+   switch (fmt.fmt.pix.field) {

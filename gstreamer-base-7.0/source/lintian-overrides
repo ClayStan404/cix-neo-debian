@@ -1,0 +1,2 @@
+# Both stanzas describe the same upstream file with equivalent BSD-3-Clause terms.
+gst-plugins-base1.0 source: duplicate-globbing-patterns ext/ogg/vorbis_parse.c (lines 650 1138) [debian/copyright]

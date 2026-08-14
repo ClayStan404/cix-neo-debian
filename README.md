@@ -52,8 +52,14 @@ The current packaging metadata is:
   adapters and NOE C++ engine.
 - `mnn/`: external Debian metadata for the native MNN runtime, utilities, and
   Debian 13 Python bindings.
-- `gstreamer/`: external Debian metadata for the private CIX GStreamer runtime
-  overlay, CIX plugins, and its private video development interface.
+- `gstreamer/`: external Debian metadata for the Linux 6.6 private CIX
+  GStreamer runtime overlay, CIX plugins, and private video interface.
+- `gstreamer-base-7.0/` and `gstreamer-good-7.0/`: downstream changelog and
+  quilt patch overlays for the revision-pinned Debian Salsa packages used by
+  the Linux 7.0 standard media stack. Debian owns the package split, control,
+  rules, copyright, and source format; these directories do not duplicate
+  that metadata. A small `control` fragment may add CIX-owned Build-Depends
+  without copying Debian's complete control file.
 - `nnstreamer/`: external Debian metadata for the CIX NNStreamer runtime,
   Python integration, and private development files.
 - `wlan-dkms/`: external Debian metadata for the combined QCA FC6XE and

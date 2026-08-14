@@ -1,0 +1,56 @@
+From ee12406163ff37614e21615d4b3024fbdec33bea Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Thu, 13 Nov 2025 15:34:42 +0800
+Subject: [PATCH] DPTSW-21000: v4l2: refine sizeimage calculation logic
+
+Use actual resolution and bitdepth to calculate sizeimage in
+v4l2_format. If use max resolution which is 8Kx8K, the buffer allocated
+will be too big for small resolution videos and then VPU may get failed
+to map many big buffers.
+
+For AV1 and VP9, double the size since superframe size could be big.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I2ceff07c5f1a8ff59ec04a2308b107c4cc9143e8
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index db1a1d2136..791a0982ca 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -3957,14 +3957,13 @@ field_to_str (enum v4l2_field f)
+ }
+ 
+ static guint
+-calculate_max_sizeimage (GstV4l2Object * v4l2object, guint pixel_bitdepth)
++calculate_max_sizeimage (gint width, gint height, guint32 pixelformat, guint pixel_bitdepth)
+ {
+-  guint max_width, max_height;
+   guint sizeimage;
+ 
+-  max_width = v4l2object->max_width;
+-  max_height = v4l2object->max_height;
+-  sizeimage = max_width * max_height * pixel_bitdepth / 8 / 2;
++  sizeimage = width * height * pixel_bitdepth / 8;
++  if (pixelformat == V4L2_PIX_FMT_VP9 || pixelformat == V4L2_PIX_FMT_AV1)
++    sizeimage *= 2;
+ 
+   return MAX (ENCODED_BUFFER_MIN_SIZE, sizeimage);
+ }
+@@ -4230,7 +4229,7 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
+ 
+     if (GST_VIDEO_INFO_FORMAT (&info.vinfo) == GST_VIDEO_FORMAT_ENCODED)
+       format.fmt.pix_mp.plane_fmt[0].sizeimage =
+-          calculate_max_sizeimage (v4l2object, pixel_bitdepth);
++          calculate_max_sizeimage (width, height, pixelformat, pixel_bitdepth);
+   } else {
+     gint stride = GST_VIDEO_INFO_PLANE_STRIDE (&info.vinfo, 0);
+ 
+@@ -4250,7 +4249,7 @@ gst_v4l2_object_set_format_full (GstV4l2Object * v4l2object, GstCaps * caps,
+ 
+     if (GST_VIDEO_INFO_FORMAT (&info.vinfo) == GST_VIDEO_FORMAT_ENCODED)
+       format.fmt.pix.sizeimage =
+-          calculate_max_sizeimage (v4l2object, pixel_bitdepth);
++          calculate_max_sizeimage (width, height, pixelformat, pixel_bitdepth);
+   }
+ 
+   GST_DEBUG_OBJECT (v4l2object->dbg_obj, "Desired format is %dx%d, format "

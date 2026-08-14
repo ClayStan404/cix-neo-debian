@@ -1,0 +1,40 @@
+From 3828b6deec88f9229b7e39ca94c4a86bec1b6789 Mon Sep 17 00:00:00 2001
+From: Zhan Lou <zhan.lou@cixtech.com>
+Date: Fri, 23 Feb 2024 11:13:47 +0800
+Subject: [PATCH] DPTSW-7427: v4l2: adjust AFBC format ranks
+
+Adjust AFBC format ranks, then they will be listed in caps in following
+order:
+1. V4L2_PIX_FMT_YUV422_AFBC_10
+2. V4L2_PIX_FMT_YUV420_AFBC_10
+3. V4L2_PIX_FMT_YUV422_AFBC_8
+4. V4L2_PIX_FMT_YUV420_AFBC_8
+
+Formats which have higher bitdepth or more chroma information get higher
+priority.
+
+Signed-off-by: Zhan Lou <zhan.lou@cixtech.com>
+Change-Id: I5a95b04af7834ba4d3413b9ca68fd87e86d37941
+
+diff --git a/sys/v4l2/gstv4l2object.c b/sys/v4l2/gstv4l2object.c
+index 4ba0e32bad..edc9ebd92d 100644
+--- a/sys/v4l2/gstv4l2object.c
++++ b/sys/v4l2/gstv4l2object.c
+@@ -1262,10 +1262,16 @@ gst_v4l2_object_format_get_rank (const struct v4l2_fmtdesc *fmt)
+       break;
+ 
+     case V4L2_PIX_FMT_YUV420_AFBC_8:
++      rank = YUV_BASE_RANK + 11;
++      break;
+     case V4L2_PIX_FMT_YUV420_AFBC_10:
++      rank = YUV_BASE_RANK + 13;
++      break;
+     case V4L2_PIX_FMT_YUV422_AFBC_8:
++      rank = YUV_BASE_RANK + 12;
++      break;
+     case V4L2_PIX_FMT_YUV422_AFBC_10:
+-      rank = YUV_BASE_RANK;
++      rank = YUV_BASE_RANK + 14;
+       break;
+ 
+     default:
