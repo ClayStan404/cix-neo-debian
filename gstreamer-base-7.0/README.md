@@ -6,9 +6,10 @@ the patches below `patches/`, and appends `patches/series` to Debian's series
 inside an isolated work directory.
 
 The `debian/` patch directory preserves stable or security updates that are
-published for Debian 13 but are not represented by the pinned Salsa tag. The
-`cix/` directory contains the minimal AFBC and GL integration selected from
-the CIX GStreamer 1.26.2 branch. The unrelated CIX color-balance change is
+published for Debian 13 but are not represented by the pinned Salsa tag, plus
+the appsrc test synchronization fix backported from GStreamer 1.26.4. The
+`cix/` directory contains the minimal AFBC and GL integration selected from the
+CIX GStreamer 1.26.2 branch. The unrelated CIX color-balance change is
 intentionally excluded.
 
 AFBC formats are advertised only in passthrough caps because GStreamer's

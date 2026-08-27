@@ -1,3 +1,9 @@
+gst-plugins-base1.0 (1.26.2-1+deb13u1+cix7.0.2) trixie; urgency=medium
+
+  * Backport the GStreamer 1.26.4 appsrc test synchronization fix.
+
+ -- Clay Stan <claystan97@gmail.com>  Fri, 28 Aug 2026 02:47:09 +0800
+
 gst-plugins-base1.0 (1.26.2-1+deb13u1+cix7.0.1) trixie; urgency=medium
 
   * Add the CIX AFBC video formats, DMA format mappings, and GL import support

@@ -1,4 +1,5 @@
 debian/CVE-2026-2921.patch
+debian/0002-backport-appsrc-test-synchronization.patch
 cix/0001-DPTSW-5631-1-video-add-YUV-AFBC-formats.patch
 cix/0001-DPTSW-7427-video-add-afbc-format-flag.patch
 cix/0001-DPTSW-21959-base-video-add-afbc-to-dma-format-map.patch
